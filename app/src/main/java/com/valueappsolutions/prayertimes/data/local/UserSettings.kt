@@ -62,7 +62,6 @@ data class UserSettings(
     val silentModeManualJumahTime: String = "",
     val previousRingerMode: Int = -1,
     val previousInterruptionFilter: Int = -1,
-    val useOfflineCalculation: Boolean = false,
     val ayyamEBeedReminderEnabled: Boolean = false,
     val ayyamEBeedReminderTime: String = "20:00" // HH:mm format, default 8:00 PM
 )

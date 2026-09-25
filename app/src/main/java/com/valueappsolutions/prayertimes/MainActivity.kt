@@ -34,7 +34,6 @@ import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.valueappsolutions.prayertimes.data.local.UserPreferencesRepository
 import com.valueappsolutions.prayertimes.data.local.UserSettings
-import com.valueappsolutions.prayertimes.data.remote.AlAdhanApi
 import com.valueappsolutions.prayertimes.domain.PrayerRepository
 import com.valueappsolutions.prayertimes.ui.screens.DashboardScreen
 import com.valueappsolutions.prayertimes.ui.screens.GeneralSettingsScreen
@@ -46,11 +45,6 @@ import com.valueappsolutions.prayertimes.ui.screens.SettingsScreen
 import com.valueappsolutions.prayertimes.ui.theme.PrayerTimesTheme
 import com.valueappsolutions.prayertimes.ui.viewmodel.PrayerViewModel
 import com.valueappsolutions.prayertimes.ui.viewmodel.PrayerViewModelFactory
-import kotlinx.serialization.json.Json
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import retrofit2.Retrofit
-import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.valueappsolutions.prayertimes.ui.screens.MainScreen
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -68,17 +62,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        val json = Json { ignoreUnknownKeys = true }
-        val contentType = "application/json".toMediaType()
-        val retrofit = Retrofit.Builder()
-            .baseUrl("https://api.aladhan.com/")
-            .client(OkHttpClient.Builder().build())
-            .addConverterFactory(json.asConverterFactory(contentType))
-            .build()
-        val api = retrofit.create(AlAdhanApi::class.java)
-
         val preferencesRepository = UserPreferencesRepository(applicationContext)
-        val prayerRepository = PrayerRepository(api, applicationContext)
+        val prayerRepository = PrayerRepository(applicationContext)
 
         setContent {
             val settings by preferencesRepository.userSettingsFlow.collectAsState(initial = UserSettings())

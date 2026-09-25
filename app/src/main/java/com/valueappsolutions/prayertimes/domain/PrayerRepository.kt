@@ -8,7 +8,7 @@ import com.batoulapps.adhan.Coordinates
 import com.batoulapps.adhan.Madhab
 import com.batoulapps.adhan.PrayerTimes
 import com.batoulapps.adhan.data.DateComponents
-import com.valueappsolutions.prayertimes.data.remote.AlAdhanApi
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.async
@@ -30,7 +30,6 @@ import org.shredzone.commons.suncalc.MoonPosition
 import org.shredzone.commons.suncalc.MoonIllumination
 
 class PrayerRepository(
-    private val api: AlAdhanApi,
     private val context: Context
 ) {
 
@@ -164,7 +163,6 @@ class PrayerRepository(
         asrMadhab: Int = 0,
         hijriOffset: Int = 0,
         tahajjudMethod: Int = 0,
-        useOfflineCalculation: Boolean = false,
         providedArea: String? = null,
         providedCity: String? = null,
         savedTimezoneId: String? = null
@@ -209,110 +207,7 @@ class PrayerRepository(
         val area = providedArea ?: ""
         val city = providedCity ?: ""
 
-        if (!useOfflineCalculation) {
-            try {
-            // Try fetching from API
-            val response = api.getTimings(
-                latitude = latitude,
-                longitude = longitude,
-                method = calculationMethod,
-                school = asrMadhab,
-                adjustment = hijriOffset
-            )
-
-            val timings = response.data.timings
-            val apiHijri = response.data.date.hijri
-            
-            // Construct base Hijri date from API response and apply offset locally
-            val baseHijriDate = HijrahDate.of(
-                apiHijri.year.toIntOrNull() ?: 1445,
-                apiHijri.month.number,
-                apiHijri.day.toIntOrNull() ?: 1
-            )
-            
-            var totalOffset = hijriOffset
-            try {
-                val maghribTimeStr = timings.Maghrib.split(" ")[0]
-                val maghribTime = java.time.LocalTime.parse(maghribTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
-                if (java.time.LocalTime.now().isAfter(maghribTime)) {
-                    totalOffset += 1
-                }
-            } catch (e: Exception) {
-                // Ignore
-            }
-
-            val adjustedHijriDate = if (totalOffset != 0) {
-                baseHijriDate.plus(totalOffset.toLong(), ChronoUnit.DAYS)
-            } else {
-                baseHijriDate
-            }
-            
-            val formatterHijri = DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.US)
-            val hijriDateStr = formatterHijri.format(adjustedHijriDate)
-            val hijriDay = adjustedHijriDate.get(java.time.temporal.ChronoField.DAY_OF_MONTH)
-            
-            val moonFraction = getMoonFraction(latitude, longitude)
-            val currentDateStr = SimpleDateFormat("dd MMM yyyy", Locale.US).format(Date())
-
-            val destZoneIdStr = response.data.meta.timezone
-            val isDiff = destZoneIdStr != ZoneId.systemDefault().id
-
-            val finalFajr = timings.Fajr.split(" ")[0]
-            val finalSunrise = timings.Sunrise.split(" ")[0]
-            val finalDhuhr = timings.Dhuhr.split(" ")[0]
-            val finalAsr = timings.Asr.split(" ")[0]
-            val finalMaghrib = timings.Maghrib.split(" ")[0]
-            val finalIsha = timings.Isha.split(" ")[0]
-
-            val (ishraq, chasht, tahajjud) = calculateExtraPrayers(
-                fajrStr = finalFajr,
-                sunriseStr = finalSunrise,
-                maghribStr = finalMaghrib,
-                tahajjudMethod = tahajjudMethod
-            )
-
-            val result = PrayerData(
-                fajr = finalFajr,
-                sunrise = finalSunrise,
-                ishraq = ishraq,
-                chasht = chasht,
-                dhuhr = finalDhuhr,
-                asr = finalAsr,
-                maghrib = finalMaghrib,
-                isha = finalIsha,
-                tahajjud = tahajjud,
-                fajrLocal = if (isDiff) getLocalTimeStr(finalFajr, destZoneIdStr) else "",
-                sunriseLocal = if (isDiff) getLocalTimeStr(finalSunrise, destZoneIdStr) else "",
-                ishraqLocal = if (isDiff) getLocalTimeStr(ishraq, destZoneIdStr) else "",
-                chashtLocal = if (isDiff) getLocalTimeStr(chasht, destZoneIdStr) else "",
-                dhuhrLocal = if (isDiff) getLocalTimeStr(finalDhuhr, destZoneIdStr) else "",
-                asrLocal = if (isDiff) getLocalTimeStr(finalAsr, destZoneIdStr) else "",
-                maghribLocal = if (isDiff) getLocalTimeStr(finalMaghrib, destZoneIdStr) else "",
-                ishaLocal = if (isDiff) getLocalTimeStr(finalIsha, destZoneIdStr) else "",
-                tahajjudLocal = if (isDiff) getLocalTimeStr(tahajjud, destZoneIdStr) else "",
-                isLocalTimeDifferent = isDiff,
-                destinationTimezoneId = destZoneIdStr,
-                hijriDate = hijriDateStr,
-                hijriDay = hijriDay,
-                currentDate = currentDateStr,
-                isOfflineFallback = false,
-                areaName = area,
-                cityName = city,
-                moonFraction = moonFraction,
-                calculationMethod = calculationMethod,
-                asrMadhab = asrMadhab,
-                hijriOffset = hijriOffset,
-                tahajjudMethod = tahajjudMethod
-            )
-            
-            cachedKey = currentCacheKey
-            cachedData = result
-            return@withContext result
-        } catch (e: Exception) {
-            // Fallback to offline below
-        }
-        }
-        // Offline fallback to Adhan library
+        // Offline calculation using Adhan library
         val coordinates = Coordinates(latitude, longitude)
         val date = DateComponents.from(Date())
         

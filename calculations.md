@@ -1,8 +1,8 @@
 # Prayer Times Calculation Methods
 
-This document outlines how the timings for all daily prayers (Salat) are calculated in the app. The primary prayer times are fetched from the [AlAdhan API](https://aladhan.com/) (or calculated locally offline using the `com.batoulapps.adhan` library), while the supplementary prayers are calculated locally based on the primary timings.
+This document outlines how the timings for all daily prayers (Salat) are calculated in the app. The primary prayer times are calculated entirely locally offline using the `com.batoulapps.adhan` library, while the supplementary prayers are calculated based on the primary timings.
 
-## Primary Prayers (AlAdhan API / Batoul Apps Adhan Library)
+## Primary Prayers (Batoul Apps Adhan Library)
 
 The standard five daily prayers and sunrise are calculated using astronomical formulas based on the user's location (latitude/longitude), the chosen calculation method (e.g., Muslim World League, ISNA, Egyptian General Authority of Survey), and the chosen Madhab (for Asr).
 

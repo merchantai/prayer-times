@@ -127,22 +127,8 @@ fun DashboardScreen(
 
 @Composable
 fun DashboardContent(data: PrayerData, isRefreshing: Boolean, is24HourFormat: Boolean, isExpanded: Boolean = false, showRealtimeInfo: Boolean = true) {
-    val format = DateTimeFormatter.ofPattern("HH:mm")
-    fun parseTime(timeStr: String): LocalTime? {
-        return try {
-            LocalTime.parse(timeStr.split(" ")[0], format)
-        } catch (e: Exception) {
-            null
-        }
-    }
-
     fun formatDisplayTime(timeStr: String): String {
-        val parsed = parseTime(timeStr) ?: return timeStr
-        return if (is24HourFormat) {
-            parsed.format(DateTimeFormatter.ofPattern("HH:mm"))
-        } else {
-            parsed.format(DateTimeFormatter.ofPattern("hh:mm a"))
-        }
+        return com.valueappsolutions.prayertimes.ui.widgets.WidgetUtils.formatDisplayTimeStr(timeStr, is24HourFormat)
     }
 
     val fardPrayers = listOf(
@@ -161,40 +147,12 @@ fun DashboardContent(data: PrayerData, isRefreshing: Boolean, is24HourFormat: Bo
 
     // Combine for next prayer logic including Sunrise
     val allPrayers = remember(data) {
-        listOf(
-            "Fajr" to data.fajr,
-            "Sunrise" to data.sunrise,
-            "Ishraq" to data.ishraq,
-            "Chasht" to data.chasht,
-            "Dhuhr" to data.dhuhr,
-            "Asr" to data.asr,
-            "Maghrib" to data.maghrib,
-            "Isha" to data.isha,
-            "Tahajjud" to data.tahajjud
-        ).mapNotNull { 
-            val t = parseTime(it.second)
-            if (t != null) it.first to t else null 
-        }.sortedBy { it.second }
+        com.valueappsolutions.prayertimes.ui.widgets.WidgetUtils.getSortedPrayers(data)
     }
 
     // Determine current prayer initially just for highlighting the cards (doesn't need per-second updates)
     val initialTime = LocalTime.now()
-    var currentPrayerStatic = allPrayers.lastOrNull()?.first ?: ""
-    if (allPrayers.isNotEmpty()) {
-        for (i in allPrayers.indices) {
-            if (initialTime.isBefore(allPrayers[i].second)) {
-                if (i > 0) {
-                    currentPrayerStatic = allPrayers[i - 1].first
-                } else {
-                    currentPrayerStatic = allPrayers.last().first
-                }
-                break
-            }
-            if (i == allPrayers.size - 1) {
-                currentPrayerStatic = allPrayers.last().first
-            }
-        }
-    }
+    val (currentPrayerStatic, _, _) = com.valueappsolutions.prayertimes.ui.widgets.WidgetUtils.getCurrentAndNextPrayer(allPrayers, initialTime)
 
     val locationText = if (data.cityName.isNotBlank() && data.areaName.isNotBlank()) {
         "${data.areaName}, ${data.cityName}"
@@ -320,28 +278,8 @@ fun RealtimeHeroSection(data: PrayerData, isRefreshing: Boolean, locationText: S
         }
     }
 
-    var currentPrayer = allPrayers.lastOrNull()?.first ?: ""
-    var nextPrayer = allPrayers.firstOrNull()?.first ?: ""
-    var nextPrayerTime: LocalTime? = allPrayers.firstOrNull()?.second
-
-    if (allPrayers.isNotEmpty()) {
-        for (i in allPrayers.indices) {
-            if (currentTime.isBefore(allPrayers[i].second)) {
-                if (i > 0) {
-                    currentPrayer = allPrayers[i - 1].first
-                } else {
-                    currentPrayer = allPrayers.last().first
-                }
-                nextPrayer = allPrayers[i].first
-                nextPrayerTime = allPrayers[i].second
-                break
-            }
-            if (i == allPrayers.size - 1) {
-                currentPrayer = allPrayers.last().first
-                nextPrayer = allPrayers.first().first
-                nextPrayerTime = allPrayers.first().second
-            }
-        }
+    val (currentPrayer, nextPrayer, nextPrayerTime) = remember(allPrayers, currentTime) {
+        com.valueappsolutions.prayertimes.ui.widgets.WidgetUtils.getCurrentAndNextPrayer(allPrayers, currentTime)
     }
 
     var timeRemainingStr = ""
@@ -375,7 +313,7 @@ fun RealtimeSunTrajectorySection(data: PrayerData, is24HourFormat: Boolean) {
     var currentTime by remember { mutableStateOf(LocalTime.now()) }
     LaunchedEffect(Unit) {
         while(true) {
-            delay(1000)
+            delay(60000) // Update every minute instead of every second to reduce canvas redraws
             currentTime = LocalTime.now()
         }
     }
@@ -555,11 +493,9 @@ fun PrayerCard(name: String, time: String, localTime: String = "", isCurrent: Bo
 
 @Composable
 fun SunTrajectorySection(sunriseStr: String, dhuhrStr: String, maghribStr: String, currentTime: LocalTime, moonFraction: Double, is24HourFormat: Boolean) {
-    val format = DateTimeFormatter.ofPattern("HH:mm")
-    fun parse(t: String) = try { LocalTime.parse(t.split(" ")[0], format) } catch(e: Exception) { null }
+    val parse = { t: String -> com.valueappsolutions.prayertimes.ui.widgets.WidgetUtils.parseTime(t) }
     fun formatDisplay(t: LocalTime?): String {
-        if (t == null) return ""
-        return if (is24HourFormat) t.format(DateTimeFormatter.ofPattern("HH:mm")) else t.format(DateTimeFormatter.ofPattern("hh:mm a"))
+        return com.valueappsolutions.prayertimes.ui.widgets.WidgetUtils.formatDisplayTime(t, is24HourFormat)
     }
     
     val sunrise = parse(sunriseStr) ?: LocalTime.of(6, 0)

@@ -75,11 +75,6 @@ dependencies {
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
-    // Retrofit & Networking
-    implementation("com.squareup.retrofit2:retrofit:2.11.0")
-    implementation("com.squareup.retrofit2:converter-kotlinx-serialization:2.11.0")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
     // Location
     implementation("com.google.android.gms:play-services-location:21.3.0")
 

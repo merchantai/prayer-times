@@ -65,8 +65,12 @@ class AlarmManagerHelper(context: Context) {
                     )
                     autoSettings.forEachIndexed { index, (isEnabled, minutes) ->
                         if (isEnabled) {
-                            val timeStr = prayerTimes[index].substringBefore(" ")
-                            timesToSchedule[index + 1] = LocalDateTime.of(today, LocalTime.parse(timeStr)).plusMinutes(minutes.toLong())
+                            val parsedTime = if (settings.timeFormat == 1) {
+                                LocalTime.parse(prayerTimes[index], DateTimeFormatter.ofPattern("hh:mm a", java.util.Locale.US))
+                            } else {
+                                LocalTime.parse(prayerTimes[index].substringBefore(" "), DateTimeFormatter.ofPattern("HH:mm", java.util.Locale.US))
+                            }
+                            timesToSchedule[index + 1] = LocalDateTime.of(today, parsedTime).plusMinutes(minutes.toLong())
                         }
                     }
                 }
@@ -126,8 +130,12 @@ class AlarmManagerHelper(context: Context) {
                     )
                     autoSettings.forEachIndexed { index, (isEnabled, minutes) ->
                         if (isEnabled) {
-                            val timeStr = prayerTimes[index].substringBefore(" ")
-                            silentTimesToSchedule[index + 11] = LocalDateTime.of(today, LocalTime.parse(timeStr)).plusMinutes(minutes.toLong())
+                            val parsedTime = if (settings.timeFormat == 1) {
+                                LocalTime.parse(prayerTimes[index], DateTimeFormatter.ofPattern("hh:mm a", java.util.Locale.US))
+                            } else {
+                                LocalTime.parse(prayerTimes[index].substringBefore(" "), DateTimeFormatter.ofPattern("HH:mm", java.util.Locale.US))
+                            }
+                            silentTimesToSchedule[index + 11] = LocalDateTime.of(today, parsedTime).plusMinutes(minutes.toLong())
                         }
                     }
                 }

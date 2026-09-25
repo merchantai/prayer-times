@@ -19,8 +19,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
-import okhttp3.MediaType.Companion.toMediaType
-import retrofit2.converter.kotlinx.serialization.asConverterFactory
+
 
 class WidgetUpdateWorker(
     private val context: Context,
@@ -37,35 +36,14 @@ class WidgetUpdateWorker(
                 val currentDateStr = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.US).format(java.util.Date())
                 val isDateChanged = cachedData.currentDate != currentDateStr
                 
-                var crossedMaghrib = false
-                try {
-                    if (cachedData.lastUpdatedTime > 0) {
-                        val maghribTimeStr = cachedData.maghrib.split(" ")[0]
-                        val maghribTime = LocalTime.parse(maghribTimeStr, java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
-                        val lastUpdatedZdt = java.time.ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(cachedData.lastUpdatedTime), ZoneId.systemDefault())
-                        val now = LocalTime.now()
-                        if (lastUpdatedZdt.toLocalDate() == java.time.LocalDate.now()) {
-                            if (lastUpdatedZdt.toLocalTime().isBefore(maghribTime) && !now.isBefore(maghribTime)) {
-                                crossedMaghrib = true
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                val crossedMaghrib = WidgetUtils.hasCrossedMaghrib(
+                    lastUpdatedTime = cachedData.lastUpdatedTime,
+                    maghribTimeStr = cachedData.maghrib
+                )
 
                 if (isDateChanged || crossedMaghrib) {
                     try {
-                        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-                        val contentType = "application/json".toMediaType()
-                        val retrofit = retrofit2.Retrofit.Builder()
-                            .baseUrl("https://api.aladhan.com/")
-                            .client(okhttp3.OkHttpClient.Builder().build())
-                            .addConverterFactory(json.asConverterFactory(contentType))
-                            .build()
-                        val api = retrofit.create(com.valueappsolutions.prayertimes.data.remote.AlAdhanApi::class.java)
-                        
-                        val prayerRepository = com.valueappsolutions.prayertimes.domain.PrayerRepository(api, context)
+                        val prayerRepository = com.valueappsolutions.prayertimes.domain.PrayerRepository(context)
                         
                         val tz = if (settings.isAutomaticLocation) ZoneId.systemDefault().id else cachedData.destinationTimezoneId
                         val newData = prayerRepository.getPrayerTimes(
@@ -75,7 +53,6 @@ class WidgetUpdateWorker(
                             asrMadhab = settings.asrMadhab,
                             hijriOffset = settings.hijriOffset,
                             tahajjudMethod = settings.tahajjudMethod,
-                            useOfflineCalculation = settings.useOfflineCalculation,
                             providedArea = cachedData.areaName,
                             providedCity = cachedData.cityName,
                             savedTimezoneId = tz

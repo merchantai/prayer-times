@@ -77,8 +77,8 @@ fun PrivacyPolicyScreen(onNavigateBack: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "The application requires an internet connection solely for the initial fetching of prayer timetables for new locations via the public AlAdhan API. Once downloaded, this data is cached locally, allowing the app to function entirely offline.\n\n" +
-                     "We are not legally responsible for any data policy, uptime, or privacy issues related to the third-party AlAdhan API used to fetch the initial data.",
+                text = "The application does not require an internet connection for prayer time calculations. All timings are calculated locally on your device using astronomical formulas.\n\n" +
+                     "We do not collect, transmit, or share any of your location data with external servers for the purpose of prayer time calculation.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

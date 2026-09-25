@@ -27,8 +27,7 @@ fun PrayerTimeSettingsScreen(
     var currentMethod by remember { mutableIntStateOf(2) }
     var currentMadhab by remember { mutableIntStateOf(0) }
     var currentTahajjudMethod by remember { mutableIntStateOf(0) }
-    var useOfflineCalculation by remember { mutableStateOf(false) }
-
+    
     LaunchedEffect(uiState, settings) {
         if (uiState is PrayerUiState.Success) {
             val state = uiState as PrayerUiState.Success
@@ -36,7 +35,6 @@ fun PrayerTimeSettingsScreen(
             currentMadhab = state.asrMadhab
             currentTahajjudMethod = state.tahajjudMethod
         }
-        useOfflineCalculation = settings.useOfflineCalculation
     }
 
     Scaffold(
@@ -73,38 +71,6 @@ fun PrayerTimeSettingsScreen(
                     .padding(horizontal = 16.dp),
                 contentPadding = PaddingValues(vertical = 16.dp)
             ) {
-            item {
-                SettingsCard(title = "Use Offline Calculation") {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Offline Mode (Experimental)", color = MaterialTheme.colorScheme.onBackground)
-                            Text(
-                                "Calculate times locally without internet. Uses strict round-up method.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                            )
-                        }
-                        Switch(
-                            checked = useOfflineCalculation,
-                            onCheckedChange = {
-                                useOfflineCalculation = it
-                                viewModel.updateUseOfflineCalculation(it)
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        )
-                    }
-                }
-            }
-
             item {
                 SettingsCard(title = "Calculation Method") {
                     CalculationMethodSelector(

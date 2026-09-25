@@ -82,7 +82,6 @@ class UserPreferencesRepository(private val context: Context) {
     private val PREVIOUS_RINGER_MODE = intPreferencesKey("previous_ringer_mode")
     private val PREVIOUS_INTERRUPTION_FILTER = intPreferencesKey("previous_interruption_filter")
     
-    private val USE_OFFLINE_CALCULATION = booleanPreferencesKey("use_offline_calculation")
 
     private val AYYAM_E_BEED_REMINDER_ENABLED = booleanPreferencesKey("ayyam_e_beed_reminder_enabled")
     private val AYYAM_E_BEED_REMINDER_TIME = stringPreferencesKey("ayyam_e_beed_reminder_time")
@@ -154,17 +153,11 @@ class UserPreferencesRepository(private val context: Context) {
                 silentModeManualJumahTime = preferences[SILENT_MODE_MANUAL_JUMAH_TIME] ?: "",
                 previousRingerMode = preferences[PREVIOUS_RINGER_MODE] ?: -1,
                 previousInterruptionFilter = preferences[PREVIOUS_INTERRUPTION_FILTER] ?: -1,
-                useOfflineCalculation = preferences[USE_OFFLINE_CALCULATION] ?: false,
                 ayyamEBeedReminderEnabled = preferences[AYYAM_E_BEED_REMINDER_ENABLED] ?: false,
                 ayyamEBeedReminderTime = preferences[AYYAM_E_BEED_REMINDER_TIME] ?: "20:00"
             )
         }
 
-    suspend fun updateUseOfflineCalculation(useOffline: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[USE_OFFLINE_CALCULATION] = useOffline
-        }
-    }
 
     suspend fun updateAyyamEBeedReminderEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->

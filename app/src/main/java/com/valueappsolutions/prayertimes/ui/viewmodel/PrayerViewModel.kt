@@ -63,7 +63,7 @@ class PrayerViewModel(
     init {
         viewModelScope.launch {
             val calcParamsFlow = preferencesRepository.userSettingsFlow.map { 
-                listOf(it.calculationMethod, it.asrMadhab, it.hijriOffset, it.tahajjudMethod, if (it.useOfflineCalculation) 1 else 0) 
+                listOf(it.calculationMethod, it.asrMadhab, it.hijriOffset, it.tahajjudMethod) 
             }.distinctUntilChanged()
             
             kotlinx.coroutines.flow.combine(
@@ -75,11 +75,10 @@ class PrayerViewModel(
                     val madhab = params[1]
                     val offset = params[2]
                     val tahajjud = params[3]
-                    val useOffline = params[4] == 1
                     
                     fetchPrayerTimes(
                         location.first, location.second,
-                        method, madhab, offset, tahajjud, useOffline
+                        method, madhab, offset, tahajjud
                     )
                 }
             }.collectLatest { }
@@ -110,7 +109,7 @@ class PrayerViewModel(
             fetchPrayerTimes(
                 location.first, location.second,
                 settings.calculationMethod, settings.asrMadhab, settings.hijriOffset,
-                settings.tahajjudMethod, settings.useOfflineCalculation,
+                settings.tahajjudMethod,
                 forceRefresh = true
             )
         }
@@ -118,7 +117,7 @@ class PrayerViewModel(
 
     private suspend fun fetchPrayerTimes(
         lat: Double, lng: Double,
-        method: Int, madhab: Int, offset: Int, tahajjudMethod: Int, useOffline: Boolean,
+        method: Int, madhab: Int, offset: Int, tahajjudMethod: Int,
         forceRefresh: Boolean = false
     ) {
         val cachedData = preferencesRepository.cachedPrayerDataFlow.first()
@@ -136,20 +135,10 @@ class PrayerViewModel(
                     cachedData.hijriOffset == offset &&
                     cachedData.tahajjudMethod == tahajjudMethod
                     
-            var crossedMaghrib = false
-            try {
-                if (cachedData.lastUpdatedTime > 0) {
-                    val maghribTimeStr = cachedData.maghrib.split(" ")[0]
-                    val maghribTime = java.time.LocalTime.parse(maghribTimeStr, java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
-                    val lastUpdatedZdt = java.time.ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(cachedData.lastUpdatedTime), java.time.ZoneId.systemDefault())
-                    val now = java.time.LocalTime.now()
-                    if (lastUpdatedZdt.toLocalDate() == java.time.LocalDate.now()) {
-                        if (lastUpdatedZdt.toLocalTime().isBefore(maghribTime) && !now.isBefore(maghribTime)) {
-                            crossedMaghrib = true
-                        }
-                    }
-                }
-            } catch (e: Exception) {}
+            val crossedMaghrib = com.valueappsolutions.prayertimes.ui.widgets.WidgetUtils.hasCrossedMaghrib(
+                lastUpdatedTime = cachedData.lastUpdatedTime,
+                maghribTimeStr = cachedData.maghrib
+            )
 
             if (resultsFromToday && locationResultsMatch && settingsMatch && !forceRefresh && !crossedMaghrib) {
                 shouldRefresh = false
@@ -172,14 +161,14 @@ class PrayerViewModel(
             val tz = if (settings.isAutomaticLocation) java.time.ZoneId.systemDefault().id else cachedData?.destinationTimezoneId
             val data = if (cachedData != null && calculateDistanceInKm(cachedData.latitude, cachedData.longitude, lat, lng) < 5.0) {
                 repository.getPrayerTimes(
-                    lat, lng, method, madhab, offset, tahajjudMethod, useOffline,
+                    lat, lng, method, madhab, offset, tahajjudMethod,
                     providedArea = cachedData.areaName,
                     providedCity = cachedData.cityName,
                     savedTimezoneId = tz
                 )
             } else {
                 repository.getPrayerTimes(
-                    lat, lng, method, madhab, offset, tahajjudMethod, useOffline,
+                    lat, lng, method, madhab, offset, tahajjudMethod,
                     savedTimezoneId = tz
                 )
             }
@@ -222,11 +211,6 @@ class PrayerViewModel(
         }
     }
 
-    fun updateUseOfflineCalculation(useOffline: Boolean) {
-        viewModelScope.launch {
-            preferencesRepository.updateUseOfflineCalculation(useOffline)
-        }
-    }
 
     fun updateAyyamEBeedReminderEnabled(enabled: Boolean) {
         viewModelScope.launch {
@@ -401,7 +385,6 @@ class PrayerViewModel(
             settings.asrMadhab, 
             settings.hijriOffset, 
             settings.tahajjudMethod,
-            settings.useOfflineCalculation,
             providedArea = "",
             providedCity = locationName,
             savedTimezoneId = timezoneId

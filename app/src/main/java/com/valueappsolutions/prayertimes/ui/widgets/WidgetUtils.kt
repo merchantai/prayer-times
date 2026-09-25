@@ -126,4 +126,20 @@ object WidgetUtils {
         val formatterHijri = java.time.format.DateTimeFormatter.ofPattern("dd MMMM yyyy", java.util.Locale.US)
         return formatterHijri.format(correctedDate)
     }
+
+    fun hasCrossedMaghrib(lastUpdatedTime: Long, maghribTimeStr: String): Boolean {
+        if (lastUpdatedTime <= 0) return false
+        return try {
+            val maghribTime = parseTime(maghribTimeStr) ?: return false
+            val lastUpdatedZdt = java.time.ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(lastUpdatedTime), java.time.ZoneId.systemDefault())
+            val now = LocalTime.now()
+            if (lastUpdatedZdt.toLocalDate() == java.time.LocalDate.now()) {
+                lastUpdatedZdt.toLocalTime().isBefore(maghribTime) && !now.isBefore(maghribTime)
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
 }
