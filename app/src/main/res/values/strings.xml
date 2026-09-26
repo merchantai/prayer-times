@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Prayer Times</string>
+    <string name="widget_current_next_prayer">Current &amp; Next Prayer</string>
+    <string name="widget_all_prayers_large">All Prayers (Large)</string>
+    <string name="widget_prayers_timeline">Prayers Timeline</string>
+    <string name="widget_hijri_date">Hijri Date</string>
 </resources>

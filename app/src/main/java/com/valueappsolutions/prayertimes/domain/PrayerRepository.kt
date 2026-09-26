@@ -63,11 +63,12 @@ class PrayerRepository(
     private fun getDynamicHijriDate(
         latitude: Double,
         longitude: Double,
-        offset: Int
+        offset: Int,
+        destZoneIdStr: String
     ): HijrahDate {
-        val today = LocalDate.now()
+        val zoneId = try { ZoneId.of(destZoneIdStr) } catch(e: Exception) { ZoneId.systemDefault() }
+        val today = LocalDate.now(zoneId)
         val standardHijri = HijrahDate.from(today)
-        val zoneId = ZoneId.systemDefault()
         
         val yesterday = today.minusDays(1)
         val yesterdayZdt = yesterday.atStartOfDay(zoneId)
@@ -207,9 +208,17 @@ class PrayerRepository(
         val area = providedArea ?: ""
         val city = providedCity ?: ""
 
+        val destZoneIdStr = if (!savedTimezoneId.isNullOrEmpty()) {
+            savedTimezoneId
+        } else {
+            getApproximateTimeZone(longitude)
+        }
+        val destZoneId = try { ZoneId.of(destZoneIdStr) } catch(e: Exception) { ZoneId.systemDefault() }
+        val todayInDest = LocalDate.now(destZoneId)
+
         // Offline calculation using Adhan library
         val coordinates = Coordinates(latitude, longitude)
-        val date = DateComponents.from(Date())
+        val date = DateComponents(todayInDest.year, todayInDest.monthValue, todayInDest.dayOfMonth)
         
         // Map method accurately based on user's JSON data
         val params = when (calculationMethod) {
@@ -235,11 +244,6 @@ class PrayerRepository(
         params.madhab = if (asrMadhab == 1) Madhab.HANAFI else Madhab.SHAFI
 
         val prayerTimes = PrayerTimes(coordinates, date, params)
-        val destZoneIdStr = if (!savedTimezoneId.isNullOrEmpty()) {
-            savedTimezoneId
-        } else {
-            getApproximateTimeZone(longitude)
-        }
         val isDiff = destZoneIdStr != ZoneId.systemDefault().id
         
         val destFormatter = SimpleDateFormat("HH:mm", Locale.US).apply {
@@ -249,15 +253,13 @@ class PrayerRepository(
         // Hijri fallback
         var totalOffset = hijriOffset
         try {
-            val maghribTimeStr = destFormatter.format(prayerTimes.maghrib)
-            val maghribTime = java.time.LocalTime.parse(maghribTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
-            if (java.time.LocalTime.now().isAfter(maghribTime)) {
+            if (Date().after(prayerTimes.maghrib)) {
                 totalOffset += 1
             }
         } catch (e: Exception) {
             // Ignore
         }
-        val hijrahDate = getDynamicHijriDate(latitude, longitude, totalOffset)
+        val hijrahDate = getDynamicHijriDate(latitude, longitude, totalOffset, destZoneIdStr)
         val moonFraction = getMoonFraction(latitude, longitude)
         val formatterHijri = DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.US)
         val hijriDateStr = formatterHijri.format(hijrahDate)

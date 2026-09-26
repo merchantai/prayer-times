@@ -114,17 +114,27 @@ class AlarmService : Service() {
             }
 
             // Play sound
-            try {
-                mediaPlayer = MediaPlayer.create(applicationContext, R.raw.azaan)
-                mediaPlayer?.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .build()
-                )
-                mediaPlayer?.start()
-            } catch (e: Exception) {
-                e.printStackTrace()
+            if (settings.notificationType == 0 || settings.notificationType == 2) {
+                try {
+                    mediaPlayer = MediaPlayer().apply {
+                        setWakeMode(applicationContext, android.os.PowerManager.PARTIAL_WAKE_LOCK)
+                        setAudioAttributes(
+                            AudioAttributes.Builder()
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                .setUsage(AudioAttributes.USAGE_ALARM)
+                                .build()
+                        )
+                        val afd = applicationContext.resources.openRawResourceFd(R.raw.azaan)
+                        if (afd != null) {
+                            setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                            afd.close()
+                            prepare()
+                            start()
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
             
             // Auto stop after 28 seconds

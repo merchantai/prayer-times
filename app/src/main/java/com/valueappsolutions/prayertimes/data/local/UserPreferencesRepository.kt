@@ -278,6 +278,10 @@ class UserPreferencesRepository(private val context: Context) {
         context.dataStore.edit { preferences ->
             preferences[SILENT_MODE_ENABLED] = enabled
         }
+        if (!enabled) {
+            val intent = android.content.Intent(context, com.valueappsolutions.prayertimes.domain.alarms.SilentModeEndReceiver::class.java)
+            context.sendBroadcast(intent)
+        }
     }
 
     suspend fun updateSilentModeDurations(fajr: Int, dhuhr: Int, asr: Int, maghrib: Int, isha: Int, jumah: Int) {
@@ -362,6 +366,10 @@ class UserPreferencesRepository(private val context: Context) {
                 4 -> preferences[SILENT_MODE_ISHA_ENABLED] = enabled
                 5 -> preferences[SILENT_MODE_JUMAH_ENABLED] = enabled
             }
+        }
+        if (!enabled) {
+            val intent = android.content.Intent(context, com.valueappsolutions.prayertimes.domain.alarms.SilentModeEndReceiver::class.java)
+            context.sendBroadcast(intent)
         }
     }
 

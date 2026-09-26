@@ -65,11 +65,7 @@ class AlarmManagerHelper(context: Context) {
                     )
                     autoSettings.forEachIndexed { index, (isEnabled, minutes) ->
                         if (isEnabled) {
-                            val parsedTime = if (settings.timeFormat == 1) {
-                                LocalTime.parse(prayerTimes[index], DateTimeFormatter.ofPattern("hh:mm a", java.util.Locale.US))
-                            } else {
-                                LocalTime.parse(prayerTimes[index].substringBefore(" "), DateTimeFormatter.ofPattern("HH:mm", java.util.Locale.US))
-                            }
+                            val parsedTime = LocalTime.parse(prayerTimes[index], DateTimeFormatter.ofPattern("HH:mm", java.util.Locale.US))
                             timesToSchedule[index + 1] = LocalDateTime.of(today, parsedTime).plusMinutes(minutes.toLong())
                         }
                     }
@@ -130,11 +126,7 @@ class AlarmManagerHelper(context: Context) {
                     )
                     autoSettings.forEachIndexed { index, (isEnabled, minutes) ->
                         if (isEnabled) {
-                            val parsedTime = if (settings.timeFormat == 1) {
-                                LocalTime.parse(prayerTimes[index], DateTimeFormatter.ofPattern("hh:mm a", java.util.Locale.US))
-                            } else {
-                                LocalTime.parse(prayerTimes[index].substringBefore(" "), DateTimeFormatter.ofPattern("HH:mm", java.util.Locale.US))
-                            }
+                            val parsedTime = LocalTime.parse(prayerTimes[index], DateTimeFormatter.ofPattern("HH:mm", java.util.Locale.US))
                             silentTimesToSchedule[index + 11] = LocalDateTime.of(today, parsedTime).plusMinutes(minutes.toLong())
                         }
                     }

@@ -47,12 +47,7 @@ class HijriDateWidget : GlanceAppWidget() {
 
 @Composable
 fun HijriDateContent(prayerData: PrayerData) {
-    val hijriDateStr = WidgetUtils.getDynamicHijriDateStr(
-        latitude = prayerData.latitude,
-        longitude = prayerData.longitude,
-        offset = prayerData.hijriOffset,
-        maghribTimeStr = prayerData.maghrib
-    )
+    val hijriDateStr = prayerData.hijriDate
     
     // Format is usually something like "12 Rabi' al-Awwal 1445"
     // Let's split it nicely if possible

@@ -126,6 +126,47 @@ class MainActivity : ComponentActivity() {
                     alarmHelper.updateAlarms(prayerData, settings)
                 }
 
+                val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+                androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+                    val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                        if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                            val alarmManager = getSystemService(android.content.Context.ALARM_SERVICE) as AlarmManager
+                            val notificationManager = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as NotificationManager
+                            
+                            var permissionsMissing = false
+                            
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                                permissionsMissing = true
+                            }
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && androidx.core.content.ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                                permissionsMissing = true
+                            }
+                            if (Build.VERSION.SDK_INT >= 34 && !notificationManager.canUseFullScreenIntent()) {
+                                permissionsMissing = true
+                            }
+                            
+                            if (permissionsMissing) {
+                                if (settings.notificationsEnabled) {
+                                    prayerViewModel.updateNotificationsEnabled(false)
+                                    Toast.makeText(this@MainActivity, "Notifications disabled due to missing permissions", Toast.LENGTH_LONG).show()
+                                }
+                                if (settings.silentModeEnabled) {
+                                    prayerViewModel.updateSilentModeEnabled(false)
+                                    Toast.makeText(this@MainActivity, "Silent Mode disabled due to missing permissions", Toast.LENGTH_LONG).show()
+                                }
+                                if (settings.ayyamEBeedReminderEnabled) {
+                                    prayerViewModel.updateAyyamEBeedReminderEnabled(false)
+                                    Toast.makeText(this@MainActivity, "Ayyam-e-Beed Reminder disabled due to missing permissions", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
+                    }
+                }
+
                 MainScreen(
                     navController = navController,
                     prayerViewModel = prayerViewModel,

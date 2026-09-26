@@ -9,6 +9,7 @@ import android.content.Intent
 import android.media.AudioAttributes
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.valueappsolutions.prayertimes.MainActivity
 import com.valueappsolutions.prayertimes.R
@@ -23,6 +24,13 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val prayerName = intent.getStringExtra("EXTRA_PRAYER_NAME") ?: return
         val id = intent.getIntExtra("EXTRA_ID", 0)
+
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val wakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "PrayerTimes::PrayerAlarmWakeLock"
+        )
+        wakeLock.acquire(35_000L) // 35 seconds
 
         val pendingResult = goAsync()
         val dataStoreManager = UserPreferencesRepository(context)

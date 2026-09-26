@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
 import android.os.Build
+import android.os.PowerManager
 import com.valueappsolutions.prayertimes.data.local.UserPreferencesRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,13 @@ class SilentModeAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val prayerName = intent.getStringExtra("EXTRA_PRAYER_NAME") ?: return
         val id = intent.getIntExtra("EXTRA_ID", 0)
+
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val wakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "PrayerTimes::SilentModeWakeLock"
+        )
+        wakeLock.acquire(15_000L) // 15 seconds
 
         val pendingResult = goAsync()
         val dataStoreManager = UserPreferencesRepository(context)

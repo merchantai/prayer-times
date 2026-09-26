@@ -32,7 +32,7 @@
         </receiver>
 
         <!-- Widgets -->
-        <receiver android:name=".ui.widgets.CurrentNextPrayerWidgetReceiver" android:exported="true">
+        <receiver android:name=".ui.widgets.CurrentNextPrayerWidgetReceiver" android:exported="true" android:label="@string/widget_current_next_prayer">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -41,7 +41,7 @@
                 android:resource="@xml/widget_current_next_info" />
         </receiver>
 
-        <receiver android:name=".ui.widgets.LargeFardPrayersWidgetReceiver" android:exported="true">
+        <receiver android:name=".ui.widgets.LargeFardPrayersWidgetReceiver" android:exported="true" android:label="@string/widget_all_prayers_large">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -50,7 +50,7 @@
                 android:resource="@xml/widget_large_fard_info" />
         </receiver>
 
-        <receiver android:name=".ui.widgets.HorizontalFardPrayersWidgetReceiver" android:exported="true">
+        <receiver android:name=".ui.widgets.HorizontalFardPrayersWidgetReceiver" android:exported="true" android:label="@string/widget_prayers_timeline">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -59,7 +59,7 @@
                 android:resource="@xml/widget_horizontal_fard_info" />
         </receiver>
 
-        <receiver android:name=".ui.widgets.HijriDateWidgetReceiver" android:exported="true">
+        <receiver android:name=".ui.widgets.HijriDateWidgetReceiver" android:exported="true" android:label="@string/widget_hijri_date">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

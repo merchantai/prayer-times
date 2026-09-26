@@ -75,57 +75,7 @@ object WidgetUtils {
         return Triple(currentPrayer, nextPrayer, nextPrayerTime)
     }
 
-    fun getDynamicHijriDateStr(
-        latitude: Double,
-        longitude: Double,
-        offset: Int,
-        maghribTimeStr: String
-    ): String {
-        var totalOffset = offset
-        try {
-            val maghribTime = parseTime(maghribTimeStr)
-            if (maghribTime != null && !LocalTime.now().isBefore(maghribTime)) {
-                totalOffset += 1
-            }
-        } catch (e: Exception) {
-            // Ignore
-        }
 
-        val today = java.time.LocalDate.now()
-        val standardHijri = java.time.chrono.HijrahDate.from(today)
-        val zoneId = java.time.ZoneId.systemDefault()
-        
-        val yesterday = today.minusDays(1)
-        val yesterdayZdt = yesterday.atStartOfDay(zoneId)
-
-        val sunTimes = org.shredzone.commons.suncalc.SunTimes.compute()
-            .on(yesterdayZdt)
-            .at(latitude, longitude)
-            .execute()
-
-        val sunset = sunTimes.set ?: yesterdayZdt.withHour(18)
-
-        val sunsetIllumination = org.shredzone.commons.suncalc.MoonIllumination.compute().on(sunset).execute()
-        val sunsetPosition = org.shredzone.commons.suncalc.MoonPosition.compute().on(sunset).at(latitude, longitude).execute()
-
-        val isVisible = sunsetIllumination.fraction >= 0.02 && sunsetPosition.altitude >= 5.0
-        
-        var correctedDate = standardHijri
-        val dayOfMonth = standardHijri.get(java.time.temporal.ChronoField.DAY_OF_MONTH)
-
-        if (dayOfMonth == 1 && !isVisible) {
-            correctedDate = standardHijri.minus(1, java.time.temporal.ChronoUnit.DAYS)
-        } else if (dayOfMonth == 30 && isVisible) {
-            correctedDate = standardHijri.plus(1, java.time.temporal.ChronoUnit.DAYS)
-        }
-
-        if (totalOffset != 0) {
-            correctedDate = correctedDate.plus(totalOffset.toLong(), java.time.temporal.ChronoUnit.DAYS)
-        }
-
-        val formatterHijri = java.time.format.DateTimeFormatter.ofPattern("dd MMMM yyyy", java.util.Locale.US)
-        return formatterHijri.format(correctedDate)
-    }
 
     fun hasCrossedMaghrib(lastUpdatedTime: Long, maghribTimeStr: String): Boolean {
         if (lastUpdatedTime <= 0) return false
