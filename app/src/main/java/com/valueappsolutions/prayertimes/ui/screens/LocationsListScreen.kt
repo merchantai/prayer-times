@@ -94,8 +94,8 @@ fun LocationsListScreen(
                             val newLoc = SavedLocation(
                                 id = UUID.randomUUID().toString(),
                                 name = currentName,
-                                latitude = currentLoc.first,
-                                longitude = currentLoc.second,
+                                latitude = currentLoc.latitude,
+                                longitude = currentLoc.longitude,
                                 timezoneId = if (uiState is PrayerUiState.Success) (uiState as PrayerUiState.Success).prayerData.destinationTimezoneId else ""
                             )
                             viewModel.saveLocation(newLoc)
@@ -138,6 +138,10 @@ fun LocationsListScreen(
                         LocationCard(
                             location = location,
                             onClick = { onNavigateToDetail(location.latitude, location.longitude, location.name, location.timezoneId) },
+                            onSetCurrent = {
+                                viewModel.setAsCurrentLocation(location)
+                                Toast.makeText(context, "${location.name} set as current location", Toast.LENGTH_SHORT).show()
+                            },
                             onDelete = { viewModel.removeLocation(location.id) }
                         )
                     }
@@ -306,6 +310,7 @@ fun LocationsListScreen(
 fun LocationCard(
     location: SavedLocation,
     onClick: () -> Unit,
+    onSetCurrent: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
@@ -339,6 +344,13 @@ fun LocationCard(
                     text = "${"%.4f".format(location.latitude)}, ${"%.4f".format(location.longitude)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(onClick = onSetCurrent) {
+                Icon(
+                    imageVector = Icons.Rounded.MyLocation,
+                    contentDescription = "Set as Current Location",
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
             IconButton(onClick = onDelete) {

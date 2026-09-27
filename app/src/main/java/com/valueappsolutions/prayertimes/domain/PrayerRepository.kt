@@ -33,17 +33,7 @@ class PrayerRepository(
     private val context: Context
 ) {
 
-    private data class CacheKey(
-        val dateStr: String,
-        val latitude: Double,
-        val longitude: Double,
-        val calculationMethod: Int,
-        val asrMadhab: Int,
-        val hijriOffset: Int,
-        val tahajjudMethod: Int
-    )
-    private var cachedKey: CacheKey? = null
-    private var cachedData: PrayerData? = null
+
 
     private fun getMoonFraction(
         latitude: Double,
@@ -59,40 +49,51 @@ class PrayerRepository(
         return currentIllumination.fraction
     }
     
-    // Kept for offline fallback
     private fun getDynamicHijriDate(
         latitude: Double,
         longitude: Double,
         offset: Int,
-        destZoneIdStr: String
+        destZoneIdStr: String,
+        calculationMethod: Int
     ): HijrahDate {
         val zoneId = try { ZoneId.of(destZoneIdStr) } catch(e: Exception) { ZoneId.systemDefault() }
         val today = LocalDate.now(zoneId)
         val standardHijri = HijrahDate.from(today)
         
-        val yesterday = today.minusDays(1)
-        val yesterdayZdt = yesterday.atStartOfDay(zoneId)
-
-        val sunTimes = SunTimes.compute()
-            .on(yesterdayZdt)
-            .at(latitude, longitude)
-            .execute()
-
-        val sunset = sunTimes.set ?: yesterdayZdt.withHour(18) // fallback if no sunset
-
-        val sunsetIllumination = MoonIllumination.compute().on(sunset).execute()
-        val sunsetPosition = MoonPosition.compute().on(sunset).at(latitude, longitude).execute()
-
-        // Thresholds: 2.0% illumination and 5.0 degrees altitude
-        val isVisible = sunsetIllumination.fraction >= 0.02 && sunsetPosition.altitude >= 5.0
-        
         var correctedDate = standardHijri
-        val dayOfMonth = standardHijri.get(java.time.temporal.ChronoField.DAY_OF_MONTH)
-
-        if (dayOfMonth == 1 && !isVisible) {
-            correctedDate = standardHijri.minus(1, ChronoUnit.DAYS)
-        } else if (dayOfMonth == 30 && isVisible) {
-            correctedDate = standardHijri.plus(1, ChronoUnit.DAYS)
+        
+        // If calculation method is NOT Umm Al-Qura, we adjust based on local moon sighting
+        if (calculationMethod != 4) {
+            val dayOfMonth = standardHijri.get(java.time.temporal.ChronoField.DAY_OF_MONTH)
+            val firstDayGregorian = today.minusDays(dayOfMonth.toLong() - 1)
+            
+            var localFirstDay: LocalDate? = null
+            for (i in 0..3) {
+                val checkDate = firstDayGregorian.minusDays(2).plusDays(i.toLong())
+                val zdt = checkDate.atStartOfDay(zoneId)
+                
+                val sunTimes = SunTimes.compute()
+                    .on(zdt)
+                    .at(latitude, longitude)
+                    .execute()
+                    
+                val sunset = sunTimes.set ?: zdt.withHour(18) // fallback if no sunset
+                val sunsetIllumination = MoonIllumination.compute().on(sunset).execute()
+                val sunsetPosition = MoonPosition.compute().on(sunset).at(latitude, longitude).execute()
+                
+                // Thresholds: 2.0% illumination and 5.0 degrees altitude
+                if (sunsetIllumination.fraction >= 0.02 && sunsetPosition.altitude >= 5.0) {
+                    localFirstDay = checkDate.plusDays(1)
+                    break
+                }
+            }
+            
+            if (localFirstDay == null) {
+                localFirstDay = firstDayGregorian
+            }
+            
+            val diffDays = ChronoUnit.DAYS.between(firstDayGregorian, localFirstDay).toInt()
+            correctedDate = standardHijri.minus(diffDays.toLong(), ChronoUnit.DAYS)
         }
 
         if (offset != 0) {
@@ -190,20 +191,7 @@ class PrayerRepository(
             return String.format(Locale.US, "GMT%s%02d:00", sign, Math.abs(offsetHours))
         }
 
-        val currentDateStr = SimpleDateFormat("dd MMM yyyy", Locale.US).format(Date())
-        val currentCacheKey = CacheKey(
-            dateStr = currentDateStr,
-            latitude = latitude,
-            longitude = longitude,
-            calculationMethod = calculationMethod,
-            asrMadhab = asrMadhab,
-            hijriOffset = hijriOffset,
-            tahajjudMethod = tahajjudMethod
-        )
 
-        if (cachedKey == currentCacheKey && cachedData != null) {
-            return@withContext cachedData!!
-        }
 
         val area = providedArea ?: ""
         val city = providedCity ?: ""
@@ -259,7 +247,7 @@ class PrayerRepository(
         } catch (e: Exception) {
             // Ignore
         }
-        val hijrahDate = getDynamicHijriDate(latitude, longitude, totalOffset, destZoneIdStr)
+        val hijrahDate = getDynamicHijriDate(latitude, longitude, totalOffset, destZoneIdStr, calculationMethod)
         val moonFraction = getMoonFraction(latitude, longitude)
         val formatterHijri = DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.US)
         val hijriDateStr = formatterHijri.format(hijrahDate)
@@ -315,8 +303,6 @@ class PrayerRepository(
             tahajjudMethod = tahajjudMethod
         )
         
-        cachedKey = currentCacheKey
-        cachedData = result
         return@withContext result
     }
 }

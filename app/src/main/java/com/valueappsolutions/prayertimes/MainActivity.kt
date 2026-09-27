@@ -96,7 +96,7 @@ class MainActivity : ComponentActivity() {
                         }
                         else -> {
                             Toast.makeText(this, "Location permission denied. Using default location.", Toast.LENGTH_LONG).show()
-                            prayerViewModel.updateLocation(21.4225, 39.8262) // Default to Makkah
+                            prayerViewModel.updateLocation(21.4225, 39.8262, isAutomatic = true) // Default to Makkah
                         }
                     }
                 }
@@ -179,15 +179,16 @@ class MainActivity : ComponentActivity() {
                         prayerViewModel.updateThemeMode(newMode)
                     },
                     onRequestLocation = {
-                        if (settings.isAutomaticLocation) {
-                            if (checkPermissions()) {
-                                fetchLocationAndUpdate()
-                            } else {
-                                locationPermissionRequest.launch(arrayOf(
-                                    Manifest.permission.ACCESS_FINE_LOCATION,
-                                    Manifest.permission.ACCESS_COARSE_LOCATION
-                                ))
-                            }
+                        if (!settings.isAutomaticLocation) {
+                            prayerViewModel.updateIsAutomaticLocation(true)
+                        }
+                        if (checkPermissions()) {
+                            fetchLocationAndUpdate()
+                        } else {
+                            locationPermissionRequest.launch(arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            ))
                         }
                     },
                     locationPermissionRequest = locationPermissionRequest,
@@ -212,21 +213,21 @@ class MainActivity : ComponentActivity() {
     private fun fetchLocationAndUpdate() {
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             if (location != null) {
-                prayerViewModel.updateLocation(location.latitude, location.longitude)
+                prayerViewModel.updateLocation(location.latitude, location.longitude, isAutomatic = true)
             } else {
                 fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, CancellationTokenSource().token)
                     .addOnSuccessListener { freshLocation ->
                         if (freshLocation != null) {
-                            prayerViewModel.updateLocation(freshLocation.latitude, freshLocation.longitude)
+                            prayerViewModel.updateLocation(freshLocation.latitude, freshLocation.longitude, isAutomatic = true)
                         } else {
-                            prayerViewModel.updateLocation(21.4225, 39.8262)
+                            prayerViewModel.updateLocation(21.4225, 39.8262, isAutomatic = true)
                         }
                     }.addOnFailureListener {
-                        prayerViewModel.updateLocation(21.4225, 39.8262)
+                        prayerViewModel.updateLocation(21.4225, 39.8262, isAutomatic = true)
                     }
             }
         }.addOnFailureListener {
-            prayerViewModel.updateLocation(21.4225, 39.8262)
+            prayerViewModel.updateLocation(21.4225, 39.8262, isAutomatic = true)
         }
     }
 

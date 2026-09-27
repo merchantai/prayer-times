@@ -20,6 +20,14 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 import com.valueappsolutions.prayertimes.data.local.UserSettings
 
+data class LocationRequest(
+    val latitude: Double,
+    val longitude: Double,
+    val isAutomatic: Boolean? = null,
+    val timezoneId: String? = null,
+    val cityName: String? = null
+)
+
 sealed class PrayerUiState {
     object Loading : PrayerUiState()
     data class Success(
@@ -57,8 +65,8 @@ class PrayerViewModel(
         )
 
 
-    private val _locationFlow = MutableStateFlow<Pair<Double, Double>?>(null)
-    val currentLocation: StateFlow<Pair<Double, Double>?> = _locationFlow.asStateFlow()
+    private val _locationFlow = MutableStateFlow<LocationRequest?>(null)
+    val currentLocation: StateFlow<LocationRequest?> = _locationFlow.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -77,8 +85,11 @@ class PrayerViewModel(
                     val tahajjud = params[3]
                     
                     fetchPrayerTimes(
-                        location.first, location.second,
-                        method, madhab, offset, tahajjud
+                        location.latitude, location.longitude,
+                        method, madhab, offset, tahajjud,
+                        isAutomatic = location.isAutomatic,
+                        timezoneId = location.timezoneId,
+                        cityName = location.cityName
                     )
                 }
             }.collectLatest { }
@@ -94,20 +105,20 @@ class PrayerViewModel(
         }
     }
 
-    fun updateLocation(latitude: Double, longitude: Double) {
-        _locationFlow.value = Pair(latitude, longitude)
+    fun updateLocation(latitude: Double, longitude: Double, isAutomatic: Boolean? = null, timezoneId: String? = null, cityName: String? = null) {
+        _locationFlow.value = LocationRequest(latitude, longitude, isAutomatic, timezoneId, cityName)
     }
 
     fun refreshData() {
         viewModelScope.launch {
             val location = _locationFlow.value ?: run {
                 val cached = preferencesRepository.cachedPrayerDataFlow.first()
-                if (cached != null) Pair(cached.latitude, cached.longitude) else null
+                if (cached != null) LocationRequest(cached.latitude, cached.longitude) else null
             } ?: return@launch
             
             val settings = preferencesRepository.userSettingsFlow.first()
             fetchPrayerTimes(
-                location.first, location.second,
+                location.latitude, location.longitude,
                 settings.calculationMethod, settings.asrMadhab, settings.hijriOffset,
                 settings.tahajjudMethod,
                 forceRefresh = true
@@ -118,60 +129,37 @@ class PrayerViewModel(
     private suspend fun fetchPrayerTimes(
         lat: Double, lng: Double,
         method: Int, madhab: Int, offset: Int, tahajjudMethod: Int,
-        forceRefresh: Boolean = false
+        forceRefresh: Boolean = false,
+        isAutomatic: Boolean? = null,
+        timezoneId: String? = null,
+        cityName: String? = null
     ) {
         val cachedData = preferencesRepository.cachedPrayerDataFlow.first()
         val settings = preferencesRepository.userSettingsFlow.first()
         val currentDateStr = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.US).format(java.util.Date())
 
-        var shouldRefresh = true
-
         if (cachedData != null) {
-            val resultsFromToday = cachedData.currentDate == currentDateStr
-            val distanceInKm = calculateDistanceInKm(cachedData.latitude, cachedData.longitude, lat, lng)
-            val locationResultsMatch = distanceInKm < 5.0
-            val settingsMatch = cachedData.calculationMethod == method &&
-                    cachedData.asrMadhab == madhab &&
-                    cachedData.hijriOffset == offset &&
-                    cachedData.tahajjudMethod == tahajjudMethod
-                    
-            val crossedMaghrib = com.valueappsolutions.prayertimes.ui.widgets.WidgetUtils.hasCrossedMaghrib(
-                lastUpdatedTime = cachedData.lastUpdatedTime,
-                maghribTimeStr = cachedData.maghrib
-            )
-
-            if (resultsFromToday && locationResultsMatch && settingsMatch && !forceRefresh && !crossedMaghrib) {
-                shouldRefresh = false
-            }
-
             _uiState.update { 
-                PrayerUiState.Success(cachedData, shouldRefresh, method, madhab, offset, tahajjudMethod, settings.themeMode) 
+                PrayerUiState.Success(cachedData, true, method, madhab, offset, tahajjudMethod, settings.themeMode) 
             }
         } else {
             _uiState.update { PrayerUiState.Loading }
         }
 
-        if (!shouldRefresh) {
-            return
-        }
-
         try {
             val startTime = System.currentTimeMillis()
             
-            val tz = if (settings.isAutomaticLocation) java.time.ZoneId.systemDefault().id else cachedData?.destinationTimezoneId
-            val data = if (cachedData != null && calculateDistanceInKm(cachedData.latitude, cachedData.longitude, lat, lng) < 5.0) {
-                repository.getPrayerTimes(
-                    lat, lng, method, madhab, offset, tahajjudMethod,
-                    providedArea = cachedData.areaName,
-                    providedCity = cachedData.cityName,
-                    savedTimezoneId = tz
-                )
-            } else {
-                repository.getPrayerTimes(
-                    lat, lng, method, madhab, offset, tahajjudMethod,
-                    savedTimezoneId = tz
-                )
-            }
+            val isAuto = isAutomatic ?: settings.isAutomaticLocation
+            val tz = if (isAuto) java.time.ZoneId.systemDefault().id else (timezoneId ?: cachedData?.destinationTimezoneId)
+            val finalCityName = cityName ?: (if (cachedData != null && calculateDistanceInKm(cachedData.latitude, cachedData.longitude, lat, lng) < 5.0) cachedData.cityName else null)
+            val finalAreaName = if (cityName == null && cachedData != null && calculateDistanceInKm(cachedData.latitude, cachedData.longitude, lat, lng) < 5.0) cachedData.areaName else null
+
+            val data = repository.getPrayerTimes(
+                lat, lng, method, madhab, offset, tahajjudMethod,
+                providedArea = finalAreaName,
+                providedCity = finalCityName,
+                savedTimezoneId = tz
+            )
             
             val elapsedTime = System.currentTimeMillis() - startTime
             if (forceRefresh && elapsedTime < 500) {
@@ -374,6 +362,16 @@ class PrayerViewModel(
     fun removeLocation(locationId: String) {
         viewModelScope.launch {
             preferencesRepository.removeSavedLocation(locationId)
+        }
+    }
+
+    fun setAsCurrentLocation(location: SavedLocation) {
+        viewModelScope.launch {
+            preferencesRepository.updateIsAutomaticLocation(false)
+            preferencesRepository.updateManualLocation(location.latitude, location.longitude)
+            
+            // Just trigger the update, fetchPrayerTimes will handle fetching and caching
+            updateLocation(location.latitude, location.longitude, isAutomatic = false, timezoneId = location.timezoneId, cityName = location.name)
         }
     }
 

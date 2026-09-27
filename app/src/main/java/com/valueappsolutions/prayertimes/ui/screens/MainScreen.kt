@@ -244,20 +244,7 @@ fun MainScreen(
                                     launchSingleTop = true
                                 }
                             },
-                            onRequestLocation = {
-                                if (settings.isAutomaticLocation) {
-                                    if (checkPermissions()) {
-                                        fetchLocationAndUpdate()
-                                    } else {
-                                        locationPermissionRequest.launch(
-                                            arrayOf(
-                                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                                Manifest.permission.ACCESS_COARSE_LOCATION
-                                            )
-                                        )
-                                    }
-                                }
-                            },
+                            onRequestLocation = onRequestLocation,
                             onRefresh = {
                                 prayerViewModel.refreshData()
                             },

@@ -41,7 +41,7 @@ fun QiblaCompassScreen(
     
     val qiblaDirection = remember(location) {
         if (location != null) {
-            val coords = Coordinates(location!!.first, location!!.second)
+            val coords = Coordinates(location!!.latitude, location!!.longitude)
             Qibla(coords).direction.toFloat()
         } else {
             null
