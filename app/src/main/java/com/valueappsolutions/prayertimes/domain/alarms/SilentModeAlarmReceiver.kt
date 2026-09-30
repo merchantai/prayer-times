@@ -61,7 +61,7 @@ class SilentModeAlarmReceiver : BroadcastReceiver() {
                         1 -> {
                             // For DND, set Interruption Filter
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE)
+                                notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALARMS)
                             } else {
                                 audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
                             }

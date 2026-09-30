@@ -2,6 +2,8 @@ package com.valueappsolutions.prayertimes.ui.widgets
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -27,17 +29,22 @@ import kotlinx.coroutines.flow.first
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
+import androidx.glance.appwidget.SizeMode
+import androidx.glance.LocalSize
+
 class CurrentNextPrayerWidget : GlanceAppWidget() {
+    override val sizeMode: SizeMode = SizeMode.Exact
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val userPrefs = UserPreferencesRepository(context)
         
-        val prayerData = userPrefs.cachedPrayerDataFlow.first()
-        val is24HourFormat = userPrefs.userSettingsFlow.first().is24HourFormat
-
         provideContent {
+            val prayerData by userPrefs.cachedPrayerDataFlow.collectAsState(initial = null)
+            val userSettings by userPrefs.userSettingsFlow.collectAsState(initial = null)
+            val is24HourFormat = userSettings?.is24HourFormat ?: false
+
             GlanceTheme(colors = WidgetThemeColors) {
                 if (prayerData != null) {
-                    CurrentNextPrayerContent(prayerData, is24HourFormat)
+                    CurrentNextPrayerContent(prayerData!!, is24HourFormat)
                 } else {
                     Column(
                         modifier = GlanceModifier.fillMaxSize().background(GlanceTheme.colors.surface).padding(16.dp),
@@ -54,6 +61,14 @@ class CurrentNextPrayerWidget : GlanceAppWidget() {
 
 @Composable
 fun CurrentNextPrayerContent(prayerData: PrayerData, is24HourFormat: Boolean) {
+    val size = LocalSize.current
+    val scale = (size.width.value / 120f).coerceIn(0.7f, 1.5f)
+    
+    val nextLabelSize = (12f * scale).sp
+    val nextTimeSize = (18f * scale).sp
+    val currentLabelSize = (12f * scale).sp
+    val spacerHeight = (1f * scale).dp
+
     val allPrayers = WidgetUtils.getSortedPrayers(prayerData)
     val (currentPrayer, nextPrayer, nextPrayerTime) = WidgetUtils.getCurrentAndNextPrayer(allPrayers, LocalTime.now())
     
@@ -70,24 +85,24 @@ fun CurrentNextPrayerContent(prayerData: PrayerData, is24HourFormat: Boolean) {
             text = "Next: $nextPrayer",
             style = TextStyle(
                 color = GlanceTheme.colors.onSurface,
-                fontSize = 16.sp
+                fontSize = nextLabelSize
             )
         )
-        Spacer(modifier = GlanceModifier.height(4.dp))
+        Spacer(modifier = GlanceModifier.height(spacerHeight))
         Text(
             text = formattedNextTime,
             style = TextStyle(
                 color = GlanceTheme.colors.primary,
-                fontSize = 24.sp,
+                fontSize = nextTimeSize,
                 fontWeight = FontWeight.Bold
             )
         )
-        Spacer(modifier = GlanceModifier.height(4.dp))
+        Spacer(modifier = GlanceModifier.height(spacerHeight))
         Text(
             text = "Current: $currentPrayer",
             style = TextStyle(
                 color = GlanceTheme.colors.onSurface,
-                fontSize = 14.sp
+                fontSize = currentLabelSize
             )
         )
     }

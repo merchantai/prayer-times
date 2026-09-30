@@ -159,6 +159,8 @@ class MainActivity : ComponentActivity() {
                                     Toast.makeText(this@MainActivity, "Ayyam-e-Beed Reminder disabled due to missing permissions", Toast.LENGTH_LONG).show()
                                 }
                             }
+                            
+                            prayerViewModel.refreshData()
                         }
                     }
                     lifecycleOwner.lifecycle.addObserver(observer)

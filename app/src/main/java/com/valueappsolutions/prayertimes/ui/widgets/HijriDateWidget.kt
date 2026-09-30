@@ -2,6 +2,8 @@ package com.valueappsolutions.prayertimes.ui.widgets
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -22,15 +24,23 @@ import com.valueappsolutions.prayertimes.domain.PrayerData
 import com.valueappsolutions.prayertimes.data.local.UserPreferencesRepository
 import kotlinx.coroutines.flow.first
 
+import androidx.glance.appwidget.SizeMode
+import androidx.glance.LocalSize
+import androidx.glance.layout.Row
+import androidx.glance.layout.Spacer
+import androidx.glance.layout.width
+
 class HijriDateWidget : GlanceAppWidget() {
+    override val sizeMode: SizeMode = SizeMode.Exact
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val userPrefs = UserPreferencesRepository(context)
-        val prayerData = userPrefs.cachedPrayerDataFlow.first()
 
         provideContent {
+            val prayerData by userPrefs.cachedPrayerDataFlow.collectAsState(initial = null)
+
             GlanceTheme(colors = WidgetThemeColors) {
                 if (prayerData != null) {
-                    HijriDateContent(prayerData)
+                    HijriDateContent(prayerData!!)
                 } else {
                     Column(
                         modifier = GlanceModifier.fillMaxSize().background(GlanceTheme.colors.surface).padding(16.dp),
@@ -47,6 +57,14 @@ class HijriDateWidget : GlanceAppWidget() {
 
 @Composable
 fun HijriDateContent(prayerData: PrayerData) {
+    val size = LocalSize.current
+    val scale = (size.width.value / 120f).coerceIn(0.7f, 1.5f)
+
+    val daySize = (32f * scale).sp // Increased slightly since it's side-by-side
+    val monthSize = (16f * scale).sp
+    val yearSize = (18f * scale).sp
+    val fallbackSize = (18f * scale).sp
+
     val hijriDateStr = prayerData.hijriDate
     
     // Format is usually something like "12 Rabi' al-Awwal 1445"
@@ -56,7 +74,7 @@ fun HijriDateContent(prayerData: PrayerData) {
     val year = parts.lastOrNull() ?: ""
     val month = if (parts.size > 2) parts.subList(1, parts.size - 1).joinToString(" ") else ""
 
-    Column(
+    Row(
         modifier = GlanceModifier.fillMaxSize()
             .background(GlanceTheme.colors.surface)
             .padding(8.dp),
@@ -68,35 +86,41 @@ fun HijriDateContent(prayerData: PrayerData) {
                 text = day,
                 style = TextStyle(
                     color = GlanceTheme.colors.primary,
-                    fontSize = 24.sp,
+                    fontSize = daySize,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
             )
-            Text(
-                text = month,
-                style = TextStyle(
-                    color = GlanceTheme.colors.onSurface,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.Center
+            Spacer(modifier = GlanceModifier.width(8.dp * scale))
+            Column(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = month,
+                    style = TextStyle(
+                        color = GlanceTheme.colors.onSurface,
+                        fontSize = monthSize,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Start
+                    )
                 )
-            )
-            Text(
-                text = year,
-                style = TextStyle(
-                    color = GlanceTheme.colors.onSurface,
-                    fontSize = 14.sp,
-                    textAlign = TextAlign.Center
+                Text(
+                    text = year,
+                    style = TextStyle(
+                        color = GlanceTheme.colors.onSurface,
+                        fontSize = yearSize,
+                        textAlign = TextAlign.Start
+                    )
                 )
-            )
+            }
         } else {
             // Fallback if the format is not exactly what we expect
             Text(
                 text = hijriDateStr,
                 style = TextStyle(
                     color = GlanceTheme.colors.primary,
-                    fontSize = 18.sp,
+                    fontSize = fallbackSize,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )

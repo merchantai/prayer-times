@@ -2,6 +2,8 @@ package com.valueappsolutions.prayertimes.ui.widgets
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -28,17 +30,22 @@ import kotlinx.coroutines.flow.first
 import java.time.LocalTime
 import androidx.glance.appwidget.cornerRadius
 
+import androidx.glance.appwidget.SizeMode
+import androidx.glance.LocalSize
+
 class LargeFardPrayersWidget : GlanceAppWidget() {
+    override val sizeMode: SizeMode = SizeMode.Exact
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val userPrefs = UserPreferencesRepository(context)
-        
-        val prayerData = userPrefs.cachedPrayerDataFlow.first()
-        val is24HourFormat = userPrefs.userSettingsFlow.first().is24HourFormat
 
         provideContent {
+            val prayerData by userPrefs.cachedPrayerDataFlow.collectAsState(initial = null)
+            val userSettings by userPrefs.userSettingsFlow.collectAsState(initial = null)
+            val is24HourFormat = userSettings?.is24HourFormat ?: false
+
             GlanceTheme(colors = WidgetThemeColors) {
                 if (prayerData != null) {
-                    LargeFardPrayersContent(prayerData, is24HourFormat)
+                    LargeFardPrayersContent(prayerData!!, is24HourFormat)
                 } else {
                     Column(
                         modifier = GlanceModifier.fillMaxSize().background(GlanceTheme.colors.surface).padding(16.dp),
@@ -55,8 +62,15 @@ class LargeFardPrayersWidget : GlanceAppWidget() {
 
 @Composable
 fun LargeFardPrayersContent(prayerData: PrayerData, is24HourFormat: Boolean) {
+    val size = LocalSize.current
+    val scale = (size.height.value / 250f).coerceIn(0.7f, 1.5f)
+
+    val nameSize = (16f * scale).sp
+    val timeSize = (18f * scale).sp
+
     val fardPrayers = listOf(
         "Fajr" to prayerData.fajr,
+        "Sunrise" to prayerData.sunrise,
         "Dhuhr" to prayerData.dhuhr,
         "Asr" to prayerData.asr,
         "Maghrib" to prayerData.maghrib,
@@ -96,7 +110,7 @@ fun LargeFardPrayersContent(prayerData: PrayerData, is24HourFormat: Boolean) {
                         text = name,
                         style = TextStyle(
                             color = GlanceTheme.colors.onSurface,
-                            fontSize = 18.sp
+                            fontSize = nameSize
                         ),
                         modifier = GlanceModifier.defaultWeight()
                     )
@@ -104,7 +118,7 @@ fun LargeFardPrayersContent(prayerData: PrayerData, is24HourFormat: Boolean) {
                         text = formattedTime,
                         style = TextStyle(
                             color = if (isCurrent) GlanceTheme.colors.primary else GlanceTheme.colors.onSurface,
-                            fontSize = 20.sp,
+                            fontSize = timeSize,
                             fontWeight = FontWeight.Bold
                         )
                     )

@@ -104,7 +104,7 @@ class PrayerViewModel(
             }
         }
     }
-
+    
     fun updateLocation(latitude: Double, longitude: Double, isAutomatic: Boolean? = null, timezoneId: String? = null, cityName: String? = null) {
         _locationFlow.value = LocationRequest(latitude, longitude, isAutomatic, timezoneId, cityName)
     }

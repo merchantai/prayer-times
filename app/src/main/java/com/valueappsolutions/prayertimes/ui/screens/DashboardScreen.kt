@@ -150,9 +150,36 @@ fun DashboardContent(data: PrayerData, isRefreshing: Boolean, is24HourFormat: Bo
         com.valueappsolutions.prayertimes.ui.widgets.WidgetUtils.getSortedPrayers(data)
     }
 
-    // Determine current prayer initially just for highlighting the cards (doesn't need per-second updates)
-    val initialTime = LocalTime.now()
-    val (currentPrayerStatic, _, _) = com.valueappsolutions.prayertimes.ui.widgets.WidgetUtils.getCurrentAndNextPrayer(allPrayers, initialTime)
+    // Keep track of current time for highlighting the cards, updating every minute and on app resume
+    var currentTimeForHighlight by remember { mutableStateOf(LocalTime.now()) }
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                currentTimeForHighlight = LocalTime.now()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    
+    // Also update current time when data is refreshed (e.g. from MainActivity ON_RESUME)
+    LaunchedEffect(data.lastUpdatedTime) {
+        currentTimeForHighlight = LocalTime.now()
+    }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            delay(60000)
+            currentTimeForHighlight = LocalTime.now()
+        }
+    }
+
+    val (currentPrayerHighlighted, _, _) = remember(allPrayers, currentTimeForHighlight) {
+        com.valueappsolutions.prayertimes.ui.widgets.WidgetUtils.getCurrentAndNextPrayer(allPrayers, currentTimeForHighlight)
+    }
 
     val locationText = if (data.cityName.isNotBlank() && data.areaName.isNotBlank()) {
         "${data.areaName}, ${data.cityName}"
@@ -193,7 +220,7 @@ fun DashboardContent(data: PrayerData, isRefreshing: Boolean, is24HourFormat: Bo
                         val (name, times) = fardPrayers[index]
                         val (time, local) = times
                         val formattedLocal = if (local.isNotBlank()) formatDisplayTime(local) else ""
-                        PrayerCard(name = name, time = formatDisplayTime(time), localTime = formattedLocal, isCurrent = if (showRealtimeInfo) name == currentPrayerStatic else false)
+                        PrayerCard(name = name, time = formatDisplayTime(time), localTime = formattedLocal, isCurrent = if (showRealtimeInfo) name == currentPrayerHighlighted else false)
                         Spacer(modifier = Modifier.height(8.dp))
                     }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
@@ -207,7 +234,7 @@ fun DashboardContent(data: PrayerData, isRefreshing: Boolean, is24HourFormat: Bo
                         val (name, times) = naflPrayers[index]
                         val (time, local) = times
                         val formattedLocal = if (local.isNotBlank()) formatDisplayTime(local) else ""
-                        PrayerCard(name = name, time = formatDisplayTime(time), localTime = formattedLocal, isCurrent = if (showRealtimeInfo) name == currentPrayerStatic else false)
+                        PrayerCard(name = name, time = formatDisplayTime(time), localTime = formattedLocal, isCurrent = if (showRealtimeInfo) name == currentPrayerHighlighted else false)
                         Spacer(modifier = Modifier.height(8.dp))
                     }
                     item { Spacer(modifier = Modifier.height(32.dp)) }
@@ -244,7 +271,7 @@ fun DashboardContent(data: PrayerData, isRefreshing: Boolean, is24HourFormat: Bo
                     val (name, times) = fardPrayers[index]
                     val (time, local) = times
                     val formattedLocal = if (local.isNotBlank()) formatDisplayTime(local) else ""
-                    PrayerCard(name = name, time = formatDisplayTime(time), localTime = formattedLocal, isCurrent = if (showRealtimeInfo) name == currentPrayerStatic else false)
+                    PrayerCard(name = name, time = formatDisplayTime(time), localTime = formattedLocal, isCurrent = if (showRealtimeInfo) name == currentPrayerHighlighted else false)
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 item { Spacer(modifier = Modifier.height(16.dp)) }
@@ -259,7 +286,7 @@ fun DashboardContent(data: PrayerData, isRefreshing: Boolean, is24HourFormat: Bo
                     val (name, times) = naflPrayers[index]
                     val (time, local) = times
                     val formattedLocal = if (local.isNotBlank()) formatDisplayTime(local) else ""
-                    PrayerCard(name = name, time = formatDisplayTime(time), localTime = formattedLocal, isCurrent = if (showRealtimeInfo) name == currentPrayerStatic else false)
+                    PrayerCard(name = name, time = formatDisplayTime(time), localTime = formattedLocal, isCurrent = if (showRealtimeInfo) name == currentPrayerHighlighted else false)
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 item { Spacer(modifier = Modifier.height(32.dp)) }

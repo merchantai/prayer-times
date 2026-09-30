@@ -232,10 +232,12 @@ fun MainScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     composable("dashboard") {
+                        val currentSettings by prayerViewModel.userSettings.collectAsState(initial = settings)
+                        val currentUiState by prayerViewModel.uiState.collectAsState()
                         DashboardScreen(
-                            uiState = uiState,
+                            uiState = currentUiState,
                             isDarkMode = isDarkTheme,
-                            is24HourFormat = settings.is24HourFormat,
+                            is24HourFormat = currentSettings.is24HourFormat,
                             isExpanded = isExpanded,
                             onToggleTheme = onToggleTheme,
                             onNavigateToSettings = {
