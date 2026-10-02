@@ -11,6 +11,8 @@ import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.IBinder
+import android.os.VibrationEffect
+import android.os.Vibrator
 import androidx.core.app.NotificationCompat
 import com.valueappsolutions.prayertimes.R
 import com.valueappsolutions.prayertimes.data.local.UserPreferencesRepository
@@ -24,6 +26,7 @@ import kotlinx.coroutines.launch
 class AlarmService : Service() {
 
     private var mediaPlayer: MediaPlayer? = null
+    private var vibrator: Vibrator? = null
     private val serviceJob = Job()
     private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
     
@@ -107,10 +110,14 @@ class AlarmService : Service() {
             val settings = dataStoreManager.userSettingsFlow.first()
             
             if (settings.notificationType == 1 || settings.notificationType == 2) {
-                // We can't update the vibration of the existing notification easily without notifying again,
-                // but we can vibrate manually or update the notification
-                notificationBuilder.setVibrate(longArrayOf(0, 500, 500, 500))
-                notificationManager.notify(id, notificationBuilder.build())
+                vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                val pattern = longArrayOf(0, 500, 500, 500)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator?.vibrate(pattern, 0)
+                }
             }
 
             // Play sound
@@ -150,6 +157,8 @@ class AlarmService : Service() {
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
+        vibrator?.cancel()
+        vibrator = null
         serviceJob.cancel()
     }
 }

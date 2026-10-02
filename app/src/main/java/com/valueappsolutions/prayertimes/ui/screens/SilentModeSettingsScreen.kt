@@ -273,17 +273,21 @@ fun SilentModeSettingsScreen(
                             )
                             
                             autoOffsets.forEachIndexed { index, pair ->
-                                var offsetText by remember { mutableStateOf(androidx.compose.ui.text.input.TextFieldValue(pair.second.toString())) }
+                                var offsetText by remember { mutableStateOf(pair.second.toString()) }
                                 LaunchedEffect(pair.second) {
-                                    if (offsetText.text != pair.second.toString()) {
-                                        offsetText = offsetText.copy(text = pair.second.toString())
+                                    val currentInt = offsetText.toIntOrNull() ?: 0
+                                    val newInt = pair.second.toString().toIntOrNull() ?: 0
+                                    if (currentInt != newInt) {
+                                        offsetText = pair.second.toString()
                                     }
                                 }
                                 
-                                var durationText by remember { mutableStateOf(androidx.compose.ui.text.input.TextFieldValue(durations[index].toString())) }
+                                var durationText by remember { mutableStateOf(durations[index].toString()) }
                                 LaunchedEffect(durations[index]) {
-                                    if (durationText.text != durations[index].toString()) {
-                                        durationText = durationText.copy(text = durations[index].toString())
+                                    val currentInt = durationText.toIntOrNull() ?: 10
+                                    val newInt = durations[index].toString().toIntOrNull() ?: 10
+                                    if (currentInt != newInt) {
+                                        durationText = durations[index].toString()
                                     }
                                 }
 
@@ -298,7 +302,7 @@ fun SilentModeSettingsScreen(
                                         value = offsetText,
                                         onValueChange = { newValue ->
                                             offsetText = newValue
-                                            val minutes = newValue.text.toIntOrNull() ?: 0
+                                            val minutes = newValue.toIntOrNull() ?: 0
                                             when (index) {
                                                 0 -> viewModel.updateSilentModeAutoTimes(minutes, autoOffsets[1].second, autoOffsets[2].second, autoOffsets[3].second, autoOffsets[4].second, autoOffsets[5].second)
                                                 1 -> viewModel.updateSilentModeAutoTimes(autoOffsets[0].second, minutes, autoOffsets[2].second, autoOffsets[3].second, autoOffsets[4].second, autoOffsets[5].second)
@@ -318,7 +322,7 @@ fun SilentModeSettingsScreen(
                                         value = durationText,
                                         onValueChange = { newValue ->
                                             durationText = newValue
-                                            val minutes = newValue.text.toIntOrNull() ?: 10
+                                            val minutes = newValue.toIntOrNull() ?: 10
                                             when (index) {
                                                 0 -> viewModel.updateSilentModeDurations(minutes, durations[1], durations[2], durations[3], durations[4], durations[5])
                                                 1 -> viewModel.updateSilentModeDurations(durations[0], minutes, durations[2], durations[3], durations[4], durations[5])
@@ -372,10 +376,12 @@ fun SilentModeSettingsScreen(
                             )
                             
                             prayers.forEachIndexed { index, pair ->
-                                var durationText by remember { mutableStateOf(androidx.compose.ui.text.input.TextFieldValue(durations[index].toString())) }
+                                var durationText by remember { mutableStateOf(durations[index].toString()) }
                                 LaunchedEffect(durations[index]) {
-                                    if (durationText.text != durations[index].toString()) {
-                                        durationText = durationText.copy(text = durations[index].toString())
+                                    val currentInt = durationText.toIntOrNull() ?: 10
+                                    val newInt = durations[index].toString().toIntOrNull() ?: 10
+                                    if (currentInt != newInt) {
+                                        durationText = durations[index].toString()
                                     }
                                 }
 
@@ -417,7 +423,7 @@ fun SilentModeSettingsScreen(
                                         value = durationText,
                                         onValueChange = { newValue ->
                                             durationText = newValue
-                                            val minutes = newValue.text.toIntOrNull() ?: 10
+                                            val minutes = newValue.toIntOrNull() ?: 10
                                             when (index) {
                                                 0 -> viewModel.updateSilentModeDurations(minutes, durations[1], durations[2], durations[3], durations[4], durations[5])
                                                 1 -> viewModel.updateSilentModeDurations(durations[0], minutes, durations[2], durations[3], durations[4], durations[5])

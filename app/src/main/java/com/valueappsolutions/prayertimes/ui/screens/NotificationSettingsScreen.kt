@@ -263,10 +263,12 @@ fun NotificationSettingsScreen(
                             )
 
                             autoOffsets.forEachIndexed { index, pair ->
-                                var textValue by remember { mutableStateOf(androidx.compose.ui.text.input.TextFieldValue(pair.second)) }
+                                var textValue by remember { mutableStateOf(pair.second) }
                                 LaunchedEffect(pair.second) {
-                                    if (textValue.text != pair.second) {
-                                        textValue = textValue.copy(text = pair.second)
+                                    val currentInt = textValue.toIntOrNull() ?: 0
+                                    val newInt = pair.second.toIntOrNull() ?: 0
+                                    if (currentInt != newInt) {
+                                        textValue = pair.second
                                     }
                                 }
                                 Row(
@@ -280,7 +282,7 @@ fun NotificationSettingsScreen(
                                         value = textValue,
                                         onValueChange = { newValue ->
                                             textValue = newValue
-                                            val minutes = newValue.text.toIntOrNull() ?: 0
+                                            val minutes = newValue.toIntOrNull() ?: 0
                                             when (index) {
                                                 0 -> viewModel.updateNotificationAutoTimes(minutes, autoOffsets[1].second.toIntOrNull() ?: 0, autoOffsets[2].second.toIntOrNull() ?: 0, autoOffsets[3].second.toIntOrNull() ?: 0, autoOffsets[4].second.toIntOrNull() ?: 0, autoOffsets[5].second.toIntOrNull() ?: 0)
                                                 1 -> viewModel.updateNotificationAutoTimes(autoOffsets[0].second.toIntOrNull() ?: 0, minutes, autoOffsets[2].second.toIntOrNull() ?: 0, autoOffsets[3].second.toIntOrNull() ?: 0, autoOffsets[4].second.toIntOrNull() ?: 0, autoOffsets[5].second.toIntOrNull() ?: 0)

@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.os.PowerManager
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -44,8 +43,6 @@ import com.valueappsolutions.prayertimes.ui.theme.PrayerTimesTheme
 
 class AlarmActivity : ComponentActivity() {
 
-    private var wakeLock: PowerManager.WakeLock? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -55,6 +52,7 @@ class AlarmActivity : ComponentActivity() {
             setTurnScreenOn(true)
             val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
             keyguardManager.requestDismissKeyguard(this, null)
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } else {
             @Suppress("DEPRECATION")
             window.addFlags(
@@ -65,15 +63,11 @@ class AlarmActivity : ComponentActivity() {
             )
         }
 
-        // Acquire WakeLock to keep screen on while alarm is ringing
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        @Suppress("DEPRECATION")
-        wakeLock = powerManager.newWakeLock(
-            PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
-            "PrayerTimes::AlarmWakeLock"
-        ).apply {
-            acquire(10 * 60 * 1000L /*10 minutes*/)
-        }
+        // Auto finish to prevent screen from staying on indefinitely and draining battery
+        window.decorView.postDelayed({
+            stopAlarmService()
+            if (!isFinishing) finish()
+        }, 60_000)
 
         val prayerName = intent.getStringExtra("EXTRA_PRAYER_NAME") ?: "Prayer"
 
@@ -104,11 +98,6 @@ class AlarmActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        wakeLock?.let {
-            if (it.isHeld) {
-                it.release()
-            }
-        }
     }
 }
 

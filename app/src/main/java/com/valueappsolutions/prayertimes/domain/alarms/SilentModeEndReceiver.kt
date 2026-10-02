@@ -50,7 +50,7 @@ class SilentModeEndReceiver : BroadcastReceiver() {
                             kotlinx.coroutines.delay(100) // Allow OS to process DND disable before setting ringer mode
                         } else if (settings.silentModeMuteType == 1 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                             // Fallback if we didn't capture the filter, but muteType was DND
-                            if (notificationManager.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_ALARMS) {
+                            if (notificationManager.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_PRIORITY) {
                                 notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
                                 kotlinx.coroutines.delay(100)
                             }
