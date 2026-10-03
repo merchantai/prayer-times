@@ -12,6 +12,8 @@ import androidx.glance.appwidget.SizeMode
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.action.clickable
+import androidx.glance.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -30,6 +32,7 @@ import com.valueappsolutions.prayertimes.data.local.UserPreferencesRepository
 import com.valueappsolutions.prayertimes.domain.PrayerData
 import kotlinx.coroutines.flow.first
 import java.time.LocalTime
+import com.valueappsolutions.prayertimes.MainActivity
 
 class HorizontalFardPrayersWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
@@ -46,7 +49,7 @@ class HorizontalFardPrayersWidget : GlanceAppWidget() {
                     HorizontalFardPrayersContent(prayerData!!, is24HourFormat)
                 } else {
                     Column(
-                        modifier = GlanceModifier.fillMaxSize().background(GlanceTheme.colors.surface).padding(16.dp),
+                        modifier = GlanceModifier.fillMaxSize().background(GlanceTheme.colors.surface).padding(16.dp).clickable(actionStartActivity<MainActivity>()),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -91,6 +94,7 @@ fun HorizontalFardPrayersContent(prayerData: PrayerData, is24HourFormat: Boolean
     Column(
         modifier = GlanceModifier.fillMaxSize()
             .background(GlanceTheme.colors.surface)
+            .clickable(actionStartActivity<MainActivity>())
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -142,7 +146,7 @@ fun HorizontalFardPrayersContent(prayerData: PrayerData, is24HourFormat: Boolean
                         style = TextStyle(
                             color = if (isCurrent) GlanceTheme.colors.primary else GlanceTheme.colors.onSurface,
                             fontSize = nameSize,
-                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Bold,
                             textAlign = TextAlign.Center
                         )
                     )

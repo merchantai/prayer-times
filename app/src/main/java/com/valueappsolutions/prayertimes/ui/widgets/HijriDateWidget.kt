@@ -10,6 +10,8 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.action.clickable
+import androidx.glance.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -23,6 +25,7 @@ import androidx.glance.text.TextStyle
 import com.valueappsolutions.prayertimes.domain.PrayerData
 import com.valueappsolutions.prayertimes.data.local.UserPreferencesRepository
 import kotlinx.coroutines.flow.first
+import com.valueappsolutions.prayertimes.MainActivity
 
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.LocalSize
@@ -43,7 +46,7 @@ class HijriDateWidget : GlanceAppWidget() {
                     HijriDateContent(prayerData!!)
                 } else {
                     Column(
-                        modifier = GlanceModifier.fillMaxSize().background(GlanceTheme.colors.surface).padding(16.dp),
+                        modifier = GlanceModifier.fillMaxSize().background(GlanceTheme.colors.surface).padding(16.dp).clickable(actionStartActivity<MainActivity>()),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -77,6 +80,7 @@ fun HijriDateContent(prayerData: PrayerData) {
     Row(
         modifier = GlanceModifier.fillMaxSize()
             .background(GlanceTheme.colors.surface)
+            .clickable(actionStartActivity<MainActivity>())
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalAlignment = Alignment.CenterHorizontally

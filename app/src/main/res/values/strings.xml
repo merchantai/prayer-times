@@ -4,4 +4,5 @@
     <string name="widget_all_prayers_large">All Prayers (Large)</string>
     <string name="widget_prayers_timeline">Prayers Timeline</string>
     <string name="widget_hijri_date">Hijri Date</string>
+    <string name="widget_sun_trajectory">Sun &amp; Moon Trajectory</string>
 </resources>

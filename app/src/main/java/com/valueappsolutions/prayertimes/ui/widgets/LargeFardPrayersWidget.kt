@@ -10,6 +10,8 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.action.clickable
+import androidx.glance.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -29,6 +31,7 @@ import com.valueappsolutions.prayertimes.domain.PrayerData
 import kotlinx.coroutines.flow.first
 import java.time.LocalTime
 import androidx.glance.appwidget.cornerRadius
+import com.valueappsolutions.prayertimes.MainActivity
 
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.LocalSize
@@ -48,7 +51,7 @@ class LargeFardPrayersWidget : GlanceAppWidget() {
                     LargeFardPrayersContent(prayerData!!, is24HourFormat)
                 } else {
                     Column(
-                        modifier = GlanceModifier.fillMaxSize().background(GlanceTheme.colors.surface).padding(16.dp),
+                        modifier = GlanceModifier.fillMaxSize().background(GlanceTheme.colors.surface).padding(16.dp).clickable(actionStartActivity<MainActivity>()),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -83,6 +86,7 @@ fun LargeFardPrayersContent(prayerData: PrayerData, is24HourFormat: Boolean) {
     Column(
         modifier = GlanceModifier.fillMaxSize()
             .background(GlanceTheme.colors.background)
+            .clickable(actionStartActivity<MainActivity>())
             .padding(12.dp)
     ) {
         fardPrayers.forEach { (name, timeStr) ->

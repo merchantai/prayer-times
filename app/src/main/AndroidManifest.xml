@@ -68,6 +68,15 @@
                 android:resource="@xml/widget_hijri_date_info" />
         </receiver>
 
+        <receiver android:name=".ui.widgets.SunTrajectoryWidgetReceiver" android:exported="true" android:label="@string/widget_sun_trajectory">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_sun_trajectory_info" />
+        </receiver>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
