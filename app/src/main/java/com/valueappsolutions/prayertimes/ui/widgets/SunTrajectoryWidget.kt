@@ -32,6 +32,7 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
@@ -45,8 +46,24 @@ import kotlin.math.cos
 import kotlin.math.sin
 import com.valueappsolutions.prayertimes.MainActivity
 
+import android.appwidget.AppWidgetManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
 class SunTrajectoryWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = SunTrajectoryWidget()
+
+    override fun onUpdate(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetIds: IntArray
+    ) {
+        super.onUpdate(context, appWidgetManager, appWidgetIds)
+        CoroutineScope(Dispatchers.IO).launch {
+            SunTrajectoryUpdateScheduler.scheduleNextUpdateIfActive(context, forceImmediateUpdate = false)
+        }
+    }
 }
 
 class SunTrajectoryWidget : GlanceAppWidget() {
@@ -111,13 +128,16 @@ fun SunTrajectoryContent(data: PrayerData, is24HourFormat: Boolean) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val drawingHeight = (size.height.value - 40f).coerceAtLeast(50f)
+        val maxDrawingHeight = (size.width.value * 0.4f).coerceAtMost(140f)
+        val drawingHeight = (size.height.value - 60f).coerceIn(60f, maxDrawingHeight)
         val bitmapWidth = (size.width.value * 2).toInt().coerceAtLeast(400)
-        val bitmapHeight = (drawingHeight * 2).toInt().coerceAtLeast(100)
-        val bitmap = createSunTrajectoryBitmap(bitmapWidth, bitmapHeight, progress, moonFraction.toFloat())
+        val bitmapHeight = (drawingHeight * 2).toInt().coerceAtLeast(120)
+        val isCompactHeight = size.height.value < 130f
+        val drawMoonInCanvas = !isCompactHeight
+        val bitmap = createSunTrajectoryBitmap(bitmapWidth, bitmapHeight, progress, moonFraction.toFloat(), drawMoonInCanvas)
 
         Box(
-            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
+            modifier = GlanceModifier.fillMaxWidth().height(drawingHeight.dp),
             contentAlignment = Alignment.Center
         ) {
             Image(
@@ -132,7 +152,7 @@ fun SunTrajectoryContent(data: PrayerData, is24HourFormat: Boolean) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    "Noon ${formatDisplay(dhuhr)}",
+                    if (isCompactHeight) formatDisplay(dhuhr) else "Noon ${formatDisplay(dhuhr)}",
                     style = boldTextStyle
                 )
             }
@@ -146,36 +166,55 @@ fun SunTrajectoryContent(data: PrayerData, is24HourFormat: Boolean) {
                 modifier = GlanceModifier.defaultWeight(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Sunrise", style = boldTextStyle)
+                if (!isCompactHeight) {
+                    Text("Sunrise", style = boldTextStyle)
+                }
                 Text(formatDisplay(sunrise), style = boldTextStyle)
             }
             
             Column(
                 modifier = GlanceModifier.defaultWeight(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "$phasePercent%",
-                    style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = subtitleSize, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                )
-                Text(
-                    "Moon Visibility",
-                    style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = subtitleSize, textAlign = TextAlign.Center)
-                )
+                if (isCompactHeight) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            provider = ImageProvider(createMoonBitmap(64, moonFraction.toFloat())),
+                            contentDescription = "Moon Phase",
+                            modifier = GlanceModifier.size(16.dp).padding(end = 4.dp)
+                        )
+                        Text(
+                            "$phasePercent%",
+                            style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = subtitleSize, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                        )
+                    }
+                } else {
+                    Text(
+                        "$phasePercent%",
+                        style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = subtitleSize, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    )
+                    Text(
+                        "Moon Visibility",
+                        style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = subtitleSize, textAlign = TextAlign.Center)
+                    )
+                }
             }
 
             Column(
                 modifier = GlanceModifier.defaultWeight(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Sunset", style = boldTextStyle)
+                if (!isCompactHeight) {
+                    Text("Sunset", style = boldTextStyle)
+                }
                 Text(formatDisplay(maghrib), style = boldTextStyle)
             }
         }
     }
 }
 
-private fun createSunTrajectoryBitmap(width: Int, height: Int, progress: Float, moonFraction: Float): Bitmap {
+private fun createSunTrajectoryBitmap(width: Int, height: Int, progress: Float, moonFraction: Float, drawMoon: Boolean): Bitmap {
     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     
@@ -187,8 +226,9 @@ private fun createSunTrajectoryBitmap(width: Int, height: Int, progress: Float, 
     
     val radiusX = (width / 2f) - 64f
     // Keep the peak of the arc at a fixed distance from the top to perfectly align beneath the Noon text
-    val topPadding = 45f
-    val radiusY = (centerY - topPadding).coerceAtLeast(30f)
+    // Increased to 80f to leave sufficient space below the Noon text and avoid overlapping
+    val topPadding = 80f
+    val radiusY = (centerY - topPadding).coerceAtLeast(20f)
     
     val paintArc = Paint().apply {
         isAntiAlias = true
@@ -232,9 +272,49 @@ private fun createSunTrajectoryBitmap(width: Int, height: Int, progress: Float, 
         }
         canvas.drawCircle(sunX, sunY, 24f, paintSunGlow)
     }
+    if (drawMoon) {
+        val moonRadius = (radiusY * 0.45f).coerceIn(16f, 60f)
+        val moonCenterY = centerY - (moonRadius * 0.5f)
+        
+        val paintMoonGlow = Paint().apply {
+            isAntiAlias = true
+            this.color = color
+            alpha = (255 * 0.05f).toInt()
+            style = Paint.Style.FILL
+        }
+        canvas.drawCircle(centerX, moonCenterY, moonRadius * 1.5f, paintMoonGlow)
+        
+        val paintMoonBase = Paint().apply {
+            isAntiAlias = true
+            this.color = color
+            alpha = (255 * 0.1f).toInt()
+            style = Paint.Style.FILL
+        }
+        canvas.drawCircle(centerX, moonCenterY, moonRadius, paintMoonBase)
+        
+        val wipeWidth = moonRadius * 2 * moonFraction
+        canvas.save()
+        canvas.clipRect(centerX - moonRadius, moonCenterY - moonRadius, centerX - moonRadius + wipeWidth, moonCenterY + moonRadius)
+        
+        val paintMoonSolid = Paint().apply {
+            isAntiAlias = true
+            this.color = color
+            style = Paint.Style.FILL
+        }
+        canvas.drawCircle(centerX, moonCenterY, moonRadius, paintMoonSolid)
+        canvas.restore()
+    }
     
-    val moonRadius = (radiusY * 0.45f).coerceIn(16f, 60f)
-    val moonCenterY = centerY - (moonRadius * 0.5f)
+    return bitmap
+}
+
+private fun createMoonBitmap(size: Int, moonFraction: Float): Bitmap {
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val color = android.graphics.Color.parseColor("#D4AF37")
+    
+    val center = size / 2f
+    val moonRadius = size / 2f - 4f // leaving a little padding for glow
     
     val paintMoonGlow = Paint().apply {
         isAntiAlias = true
@@ -242,7 +322,7 @@ private fun createSunTrajectoryBitmap(width: Int, height: Int, progress: Float, 
         alpha = (255 * 0.05f).toInt()
         style = Paint.Style.FILL
     }
-    canvas.drawCircle(centerX, moonCenterY, moonRadius * 1.5f, paintMoonGlow)
+    canvas.drawCircle(center, center, moonRadius + 2f, paintMoonGlow)
     
     val paintMoonBase = Paint().apply {
         isAntiAlias = true
@@ -250,18 +330,18 @@ private fun createSunTrajectoryBitmap(width: Int, height: Int, progress: Float, 
         alpha = (255 * 0.1f).toInt()
         style = Paint.Style.FILL
     }
-    canvas.drawCircle(centerX, moonCenterY, moonRadius, paintMoonBase)
+    canvas.drawCircle(center, center, moonRadius, paintMoonBase)
     
     val wipeWidth = moonRadius * 2 * moonFraction
     canvas.save()
-    canvas.clipRect(centerX - moonRadius, moonCenterY - moonRadius, centerX - moonRadius + wipeWidth, moonCenterY + moonRadius)
+    canvas.clipRect(center - moonRadius, center - moonRadius, center - moonRadius + wipeWidth, center + moonRadius)
     
     val paintMoonSolid = Paint().apply {
         isAntiAlias = true
         this.color = color
         style = Paint.Style.FILL
     }
-    canvas.drawCircle(centerX, moonCenterY, moonRadius, paintMoonSolid)
+    canvas.drawCircle(center, center, moonRadius, paintMoonSolid)
     canvas.restore()
 
     return bitmap

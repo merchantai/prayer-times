@@ -92,6 +92,7 @@ object WidgetUpdateScheduler {
         val largeFardWidget = LargeFardPrayersWidget()
         val horizontalFardWidget = HorizontalFardPrayersWidget()
         val hijriDateWidget = HijriDateWidget()
+        val sunTrajectoryWidget = SunTrajectoryWidget()
 
         manager.getGlanceIds(CurrentNextPrayerWidget::class.java).forEach { id ->
             currentNextWidget.update(context, id)
@@ -105,8 +106,14 @@ object WidgetUpdateScheduler {
         manager.getGlanceIds(HijriDateWidget::class.java).forEach { id ->
             hijriDateWidget.update(context, id)
         }
+        manager.getGlanceIds(SunTrajectoryWidget::class.java).forEach { id ->
+            sunTrajectoryWidget.update(context, id)
+        }
 
         scheduleNextUpdate(context)
+        
+        // Also ensure the 10-minute sun trajectory loop is running if the device is active
+        SunTrajectoryUpdateScheduler.scheduleNextUpdateIfActive(context, forceImmediateUpdate = false)
     }
 
     suspend fun scheduleNextUpdate(context: Context) {
